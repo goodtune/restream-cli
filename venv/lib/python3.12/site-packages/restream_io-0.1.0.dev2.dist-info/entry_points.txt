@@ -1,0 +1,2 @@
+[console_scripts]
+restream.io = restream_io.cli:main
