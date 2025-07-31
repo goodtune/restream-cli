@@ -1,28 +1,16 @@
 import argparse
-import webbrowser
 import sys
-import os
+from importlib.metadata import version
 
-try:
-    from importlib.metadata import version, PackageNotFoundError
-except ImportError:
-    from importlib_metadata import version, PackageNotFoundError  # type: ignore
-
-def get_version() -> str:
-    try:
-        return version("restream.io")
-    except PackageNotFoundError:
-        try:
-            from setuptools_scm import get_version as scm_get_version
-            return scm_get_version(root="..", relative_to=__file__)
-        except Exception:
-            return "0.0.0+unknown"
 
 def cmd_version(args):
-    print(get_version())
+    print(version("restream.io"))
+
 
 def cmd_login(args):
-    print("[stub] login called - implement OAuth2 authorization code flow with local redirect listener.")
+    print(
+        "[stub] login called - implement OAuth2 authorization code flow with local redirect listener."
+    )
 
 
 def cmd_profile(args):
@@ -45,7 +33,9 @@ def cmd_event_list(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="restream.io", description="CLI for Restream.io API")
+    parser = argparse.ArgumentParser(
+        prog="restream.io", description="CLI for Restream.io API"
+    )
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("login").set_defaults(func=cmd_login)
@@ -58,8 +48,8 @@ def main():
     ch_get.add_argument("id", help="Channel ID")
     ch_get.set_defaults(func=cmd_channel_get)
 
-    sub.add_parser("event").set_defaults(func=lambda args: parser.print_help())
-    event_sub = sub.add_parser("event").add_subparsers(dest="subcmd")
+    event = sub.add_parser("event")
+    event_sub = event.add_subparsers(dest="subcmd")
     event_sub.add_parser("list").set_defaults(func=cmd_event_list)
 
     sub.add_parser("version").set_defaults(func=cmd_version)
@@ -69,6 +59,7 @@ def main():
         parser.print_help()
         sys.exit(1)
     args.func(args)
+
 
 if __name__ == "__main__":  # allow direct execution for tests
     main()

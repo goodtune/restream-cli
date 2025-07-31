@@ -1,7 +1,9 @@
 import requests
+
 from .errors import APIError
 
 BASE_URL = "https://api.restream.io/v1"  # placeholder; confirm from docs
+
 
 class RestreamClient:
     def __init__(self, session: requests.Session, token: str):

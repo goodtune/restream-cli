@@ -1,6 +1,8 @@
-import responses
-from restream_io.api import RestreamClient
 import requests
+import responses
+
+from restream_io.api import RestreamClient
+
 
 @responses.activate
 def test_list_events():

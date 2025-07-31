@@ -1,9 +1,6 @@
-import http.server
-import threading
-import urllib.parse
 import secrets
 import webbrowser
-import time
+
 
 # Placeholder implementation for OAuth2 login flow
 def perform_login(client_id: str, redirect_port: int = 8080):
@@ -15,6 +12,6 @@ def perform_login(client_id: str, redirect_port: int = 8080):
     print(f"Open this URL in your browser: {auth_url}")
     webbrowser.open(auth_url)
     # Simplified listener stub; real implementation needs to capture code and exchange for tokens.
-    print("[stub] Listening on localhost for redirect and capturing authorization code...")
-
-
+    print(
+        "[stub] Listening on localhost for redirect and capturing authorization code..."
+    )
