@@ -4,14 +4,10 @@ Python command-line tool to interact with the Restream.io API.
 
 ## Bootstrapping
 
-Requires `uv` (https://uv.run) installed.
+Requires [`uv`](https://docs.astral.sh/uv/) installed.
 
 ```bash
-uv init
-uv add requests responses pytest setuptools_scm
 uv sync
-# (optional) editable install for development:
-uv run python -m pip install -e .
 ```
 
 ## Basic commands

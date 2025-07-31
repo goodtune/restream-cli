@@ -14,9 +14,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "requests",
-  "responses",
 ]
-# simple script entry point
 scripts = { "restream.io" = "restream_io.cli:main" }
 
 [tool.setuptools.packages.find]
@@ -25,3 +23,9 @@ where = ["src"]
 [tool.setuptools_scm]
 version_scheme = "release-branch-semver"
 local_scheme = "dirty-tag"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "responses>=0.25.7",
+]
