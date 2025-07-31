@@ -1,0 +1,27 @@
+[build-system]
+requires = [
+  "setuptools>=61.0",
+  "wheel",
+  "setuptools_scm[toml]>=7.1"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "restream.io"
+dynamic = ["version"]
+description = "CLI for interacting with the Restream.io API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "requests",
+  "responses",
+]
+# simple script entry point
+scripts = { "restream.io" = "restream_io.cli:main" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+version_scheme = "release-branch-semver"
+local_scheme = "dirty-tag"
