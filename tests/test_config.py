@@ -112,16 +112,11 @@ def test_load_tokens_handles_corrupted_file(temp_config_dir):
 
 def test_save_tokens_handles_permission_error(temp_config_dir):
     """Test that save_tokens raises RuntimeError on permission error."""
-    # Create the config directory but make it read-only
-    config.ensure_config_dir()
-    temp_config_dir.chmod(0o500)  # Read and execute only
-    
-    try:
+    # Mock the open function to simulate a permission error
+    with patch("builtins.open",
+               side_effect=PermissionError("Permission denied")):
         with pytest.raises(RuntimeError, match="Failed to save tokens"):
             config.save_tokens({"test": "data"})
-    finally:
-        # Restore permissions for cleanup
-        temp_config_dir.chmod(0o700)
 
 
 def test_get_client_id_from_environment():
