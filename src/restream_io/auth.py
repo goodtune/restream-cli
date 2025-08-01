@@ -2,7 +2,6 @@ import base64
 import hashlib
 import secrets
 import socket
-import time
 import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -276,7 +275,7 @@ def perform_login(
         server_thread = Thread(target=server.serve_forever, daemon=True)
         server_thread.start()
 
-        print(f"Starting OAuth2 login flow...")
+        print("Starting OAuth2 login flow...")
         print(f"Opening browser to: {auth_url}")
         print(f"Listening for callback on http://localhost:{redirect_port}/callback")
 

@@ -1,10 +1,7 @@
-import json
 import socket
 import tempfile
-import time
 import urllib.parse
 from pathlib import Path
-from threading import Thread
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -436,8 +433,9 @@ class TestIntegration:
 
     def test_login_command_missing_client_id(self, capsys):
         """Test login command with missing client ID."""
-        from restream_io.cli import cmd_login
         import argparse
+
+        from restream_io.cli import cmd_login
 
         args = argparse.Namespace(port=12000)
 
