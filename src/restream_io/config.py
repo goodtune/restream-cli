@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from pathlib import Path
 
 CONFIG_PATH = Path(
@@ -17,9 +18,15 @@ def save_tokens(data: dict):
     """Save tokens to config file with secure permissions."""
     ensure_config_dir()
     path = CONFIG_PATH / "tokens.json"
+    
+    # Calculate expires_at if expires_in is provided
+    token_data = data.copy()
+    if "expires_in" in token_data and "expires_at" not in token_data:
+        token_data["expires_at"] = time.time() + token_data["expires_in"]
+    
     try:
         with open(path, "w") as f:
-            json.dump(data, f, indent=2)
+            json.dump(token_data, f, indent=2)
         path.chmod(0o600)
     except (OSError, IOError) as e:
         raise RuntimeError(f"Failed to save tokens: {e}")

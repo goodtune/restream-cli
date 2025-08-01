@@ -1,9 +1,35 @@
 import argparse
+import json
 import sys
 from importlib.metadata import version
 
+from .api import RestreamClient
 from .auth import perform_login
-from .errors import AuthenticationError
+from .errors import APIError, AuthenticationError
+
+
+def _get_client():
+    """Get a configured RestreamClient instance."""
+    try:
+        return RestreamClient.from_config()
+    except AuthenticationError as e:
+        print(f"Authentication error: {e}", file=sys.stderr)
+        print("Please run 'restream.io login' first.", file=sys.stderr)
+        sys.exit(1)
+
+
+def _handle_api_error(e: APIError):
+    """Handle API errors consistently."""
+    print(f"API error: {e}", file=sys.stderr)
+    sys.exit(1)
+
+
+def _output_result(data, json_output=False):
+    """Output result in the appropriate format."""
+    if json_output:
+        print(json.dumps(data, indent=2))
+    else:
+        print(json.dumps(data, indent=2))  # For now, always use JSON format
 
 
 def cmd_version(args):
@@ -31,27 +57,57 @@ def cmd_login(args):
 
 
 def cmd_profile(args):
-    print("[stub] profile called - fetch user profile from Restream API.")
+    """Fetch user profile from Restream API."""
+    try:
+        client = _get_client()
+        profile = client.get_profile()
+        _output_result(profile, getattr(args, 'json', False))
+    except APIError as e:
+        _handle_api_error(e)
 
 
 def cmd_channel_list(args):
-    print("[stub] channel list called - list channels.")
+    """List channels."""
+    try:
+        client = _get_client()
+        channels = client.list_channels()
+        _output_result(channels, getattr(args, 'json', False))
+    except APIError as e:
+        _handle_api_error(e)
 
 
 def cmd_channel_get(args):
+    """Get details for a specific channel."""
     if not args.id:
         print("channel get requires an ID", file=sys.stderr)
         sys.exit(1)
-    print(f"[stub] channel get called for id={args.id}")
+    
+    try:
+        client = _get_client()
+        channel = client.get_channel(args.id)
+        _output_result(channel, getattr(args, 'json', False))
+    except APIError as e:
+        _handle_api_error(e)
 
 
 def cmd_event_list(args):
-    print("[stub] event list called - list events.")
+    """List events."""
+    try:
+        client = _get_client()
+        events = client.list_events()
+        _output_result(events, getattr(args, 'json', False))
+    except APIError as e:
+        _handle_api_error(e)
 
 
 def main():
     parser = argparse.ArgumentParser(
         prog="restream.io", description="CLI for Restream.io API"
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output results in JSON format"
     )
     sub = parser.add_subparsers(dest="command")
 
@@ -64,20 +120,28 @@ def main():
         help="Port for local OAuth callback server (default: 12000)",
     )
     login_parser.set_defaults(func=cmd_login)
-    sub.add_parser("profile").set_defaults(func=cmd_profile)
+    
+    profile_parser = sub.add_parser("profile")
+    profile_parser.set_defaults(func=cmd_profile)
 
     channel = sub.add_parser("channel")
     channel_sub = channel.add_subparsers(dest="subcmd")
-    channel_sub.add_parser("list").set_defaults(func=cmd_channel_list)
+    
+    channel_list_parser = channel_sub.add_parser("list")
+    channel_list_parser.set_defaults(func=cmd_channel_list)
+    
     ch_get = channel_sub.add_parser("get")
     ch_get.add_argument("id", help="Channel ID")
     ch_get.set_defaults(func=cmd_channel_get)
 
     event = sub.add_parser("event")
     event_sub = event.add_subparsers(dest="subcmd")
-    event_sub.add_parser("list").set_defaults(func=cmd_event_list)
+    
+    event_list_parser = event_sub.add_parser("list")
+    event_list_parser.set_defaults(func=cmd_event_list)
 
-    sub.add_parser("version").set_defaults(func=cmd_version)
+    version_parser = sub.add_parser("version")
+    version_parser.set_defaults(func=cmd_version)
 
     args = parser.parse_args()
     if not hasattr(args, "func") or args.command is None:

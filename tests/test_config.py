@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -58,10 +59,17 @@ def test_save_tokens_creates_file_with_permissions(temp_config_dir):
     assert token_file.is_file()
     assert oct(token_file.stat().st_mode)[-3:] == "600"
     
-    # Check content
+    # Check content - should include expires_at
     with open(token_file) as f:
         saved_data = json.load(f)
-    assert saved_data == token_data
+    
+    # Original data should be preserved
+    for key, value in token_data.items():
+        assert saved_data[key] == value
+    
+    # expires_at should be added when expires_in is present
+    assert "expires_at" in saved_data
+    assert saved_data["expires_at"] > time.time()  # Should be in the future
 
 
 def test_save_tokens_overwrites_existing(temp_config_dir):
@@ -95,7 +103,12 @@ def test_load_tokens_returns_data_when_file_exists(temp_config_dir):
     config.save_tokens(token_data)
     loaded_data = config.load_tokens()
     
-    assert loaded_data == token_data
+    # Check that all original data is preserved
+    for key, value in token_data.items():
+        assert loaded_data[key] == value
+    
+    # expires_at should be added when expires_in is present
+    assert "expires_at" in loaded_data
 
 
 def test_load_tokens_handles_corrupted_file(temp_config_dir):
@@ -170,7 +183,12 @@ def test_save_and_load_roundtrip(temp_config_dir):
     config.save_tokens(original_data)
     loaded_data = config.load_tokens()
     
-    assert loaded_data == original_data
+    # Check that all original data is preserved
+    for key, value in original_data.items():
+        assert loaded_data[key] == value
+    
+    # expires_at should be added when expires_in is present
+    assert "expires_at" in loaded_data
     assert type(loaded_data) == type(original_data)
     for key in original_data:
         assert loaded_data[key] == original_data[key]
