@@ -2,27 +2,42 @@ import time
 from typing import List, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-from .config import load_tokens, save_tokens
+from .config import get_client_id, get_client_secret, load_tokens, save_tokens
 from .errors import APIError, AuthenticationError
 from .schemas import Channel, EventDestination, Profile, StreamEvent
-from .utils import retry_on_transient_error
 
-BASE_URL = "https://api.restream.io/v1"  # placeholder; confirm from docs
+DEFAULT_BASE_URL = "https://api.restream.io/v1"
 
 
 class RestreamClient:
-    def __init__(self, session: requests.Session, token: str):
+    def __init__(self, session: requests.Session, token: str, base_url: str = DEFAULT_BASE_URL):
         self.session = session
         self.token = token
+        self.base_url = base_url
         self.session.headers.update({"Authorization": f"Bearer {token}"})
+        
+        # Configure retry strategy using urllib3.util.Retry
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[408, 429, 500, 502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "DELETE"],
+            raise_on_status=False  # Let us handle status codes
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     @classmethod
-    def from_config(cls, session: Optional[requests.Session] = None) -> "RestreamClient":
+    def from_config(cls, session: Optional[requests.Session] = None, base_url: str = DEFAULT_BASE_URL) -> "RestreamClient":
         """Create a RestreamClient instance using tokens from config.
         
         Args:
             session: Optional requests session. If not provided, creates a new one.
+            base_url: Base URL for API requests. Defaults to production API.
             
         Returns:
             RestreamClient instance
@@ -50,7 +65,7 @@ class RestreamClient:
             else:
                 raise AuthenticationError("Access token expired and no refresh token available. Please re-login.")
         
-        return cls(session, access_token)
+        return cls(session, access_token, base_url)
     
     @staticmethod
     def _refresh_token(refresh_token: str) -> str:
@@ -65,8 +80,6 @@ class RestreamClient:
         Raises:
             AuthenticationError: If token refresh fails
         """
-        from .config import get_client_id, get_client_secret
-        
         client_id = get_client_id()
         client_secret = get_client_secret()
         
@@ -119,7 +132,7 @@ class RestreamClient:
         Raises:
             APIError: If the request fails
         """
-        url = f"{BASE_URL}/{endpoint.lstrip('/')}"
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
         
         try:
             response = self.session.request(method, url, **kwargs)
@@ -153,13 +166,8 @@ class RestreamClient:
         Returns:
             EventDestination object
         """
-        return EventDestination(
-            channelId=data["channelId"],
-            externalUrl=data.get("externalUrl"),
-            streamingPlatformId=data["streamingPlatformId"]
-        )
+        return EventDestination(**data)
 
-    @retry_on_transient_error(max_retries=3)
     def get_profile(self) -> Profile:
         """Get user profile information.
         
@@ -167,14 +175,8 @@ class RestreamClient:
             Profile object with user information
         """
         data = self._make_request("GET", "/profile")
-        
-        return Profile(
-            id=data["id"],
-            username=data["username"],
-            email=data["email"]
-        )
+        return Profile(**data)
 
-    @retry_on_transient_error(max_retries=3)
     def list_channels(self) -> List[Channel]:
         """List all channels for the authenticated user.
         
@@ -184,17 +186,8 @@ class RestreamClient:
         data = self._make_request("GET", "/channels")
         
         # API returns a simple array of channel objects
-        return [Channel(
-            id=item["id"],
-            streamingPlatformId=item["streamingPlatformId"],
-            embedUrl=item["embedUrl"],
-            url=item["url"],
-            identifier=item["identifier"],
-            displayName=item["displayName"],
-            active=item["active"]
-        ) for item in data]
+        return [Channel(**item) for item in data]
 
-    @retry_on_transient_error(max_retries=3)
     def get_channel(self, channel_id: str) -> Channel:
         """Get details for a specific channel.
         
@@ -205,17 +198,8 @@ class RestreamClient:
             Channel object with channel details
         """
         data = self._make_request("GET", f"/channels/{channel_id}")
-        return Channel(
-            id=data["id"],
-            streamingPlatformId=data["streamingPlatformId"],
-            embedUrl=data["embedUrl"],
-            url=data["url"],
-            identifier=data["identifier"],
-            displayName=data["displayName"],
-            active=data["active"]
-        )
+        return Channel(**data)
 
-    @retry_on_transient_error(max_retries=3)
     def list_events(self) -> List[StreamEvent]:
         """List all events for the authenticated user.
         
@@ -225,14 +209,12 @@ class RestreamClient:
         data = self._make_request("GET", "/events")
         
         # API returns a simple array of event objects
-        return [StreamEvent(
-            id=item["id"],
-            status=item["status"],
-            title=item["title"],
-            description=item["description"],
-            coverUrl=item.get("coverUrl"),
-            scheduledFor=item.get("scheduledFor"),
-            startedAt=item.get("startedAt"),
-            finishedAt=item.get("finishedAt"),
-            destinations=[self._convert_destination_data(dest) for dest in item["destinations"]]
-        ) for item in data]
+        events = []
+        for item in data:
+            # Convert destinations separately since they need nested object conversion
+            destinations = [EventDestination(**dest) for dest in item["destinations"]]
+            # Create a copy of item data and replace destinations with converted objects
+            event_data = {**item, "destinations": destinations}
+            events.append(StreamEvent(**event_data))
+        
+        return events
