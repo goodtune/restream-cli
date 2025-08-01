@@ -42,11 +42,13 @@ def _output_result(data, json_output=False):
     """Output result in the appropriate format."""
     # Convert attrs objects to dict for JSON serialization
     serializable_data = _attrs_to_dict(data)
-    
+
     if json_output:
         print(json.dumps(serializable_data, indent=2, default=str))
     else:
-        print(json.dumps(serializable_data, indent=2, default=str))  # For now, always use JSON format
+        print(
+            json.dumps(serializable_data, indent=2, default=str)
+        )  # For now, always use JSON format
 
 
 def cmd_version(args):
@@ -78,7 +80,7 @@ def cmd_profile(args):
     try:
         client = _get_client()
         profile = client.get_profile()
-        _output_result(profile, getattr(args, 'json', False))
+        _output_result(profile, getattr(args, "json", False))
     except APIError as e:
         _handle_api_error(e)
 
@@ -88,7 +90,7 @@ def cmd_channel_list(args):
     try:
         client = _get_client()
         channels = client.list_channels()
-        _output_result(channels, getattr(args, 'json', False))
+        _output_result(channels, getattr(args, "json", False))
     except APIError as e:
         _handle_api_error(e)
 
@@ -98,11 +100,11 @@ def cmd_channel_get(args):
     if not args.id:
         print("channel get requires an ID", file=sys.stderr)
         sys.exit(1)
-    
+
     try:
         client = _get_client()
         channel = client.get_channel(args.id)
-        _output_result(channel, getattr(args, 'json', False))
+        _output_result(channel, getattr(args, "json", False))
     except APIError as e:
         _handle_api_error(e)
 
@@ -112,7 +114,7 @@ def cmd_event_list(args):
     try:
         client = _get_client()
         events = client.list_events()
-        _output_result(events, getattr(args, 'json', False))
+        _output_result(events, getattr(args, "json", False))
     except APIError as e:
         _handle_api_error(e)
 
@@ -122,9 +124,7 @@ def main():
         prog="restream.io", description="CLI for Restream.io API"
     )
     parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output results in JSON format"
+        "--json", action="store_true", help="Output results in JSON format"
     )
     sub = parser.add_subparsers(dest="command")
 
@@ -137,23 +137,23 @@ def main():
         help="Port for local OAuth callback server (default: 12000)",
     )
     login_parser.set_defaults(func=cmd_login)
-    
+
     profile_parser = sub.add_parser("profile")
     profile_parser.set_defaults(func=cmd_profile)
 
     channel = sub.add_parser("channel")
     channel_sub = channel.add_subparsers(dest="subcmd")
-    
+
     channel_list_parser = channel_sub.add_parser("list")
     channel_list_parser.set_defaults(func=cmd_channel_list)
-    
+
     ch_get = channel_sub.add_parser("get")
     ch_get.add_argument("id", help="Channel ID")
     ch_get.set_defaults(func=cmd_channel_get)
 
     event = sub.add_parser("event")
     event_sub = event.add_subparsers(dest="subcmd")
-    
+
     event_list_parser = event_sub.add_parser("list")
     event_list_parser.set_defaults(func=cmd_event_list)
 
