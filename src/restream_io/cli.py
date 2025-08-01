@@ -2,15 +2,32 @@ import argparse
 import sys
 from importlib.metadata import version
 
+from .auth import perform_login
+from .errors import AuthenticationError
+
 
 def cmd_version(args):
     print(version("restream.io"))
 
 
 def cmd_login(args):
-    print(
-        "[stub] login called - implement OAuth2 authorization code flow with local redirect listener."
-    )
+    """Perform OAuth2 login flow."""
+    try:
+        success = perform_login()
+        if success:
+            sys.exit(0)
+        else:
+            print("Login failed", file=sys.stderr)
+            sys.exit(1)
+    except AuthenticationError as e:
+        print(f"Login failed: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nLogin cancelled by user", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error during login: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def cmd_profile(args):
