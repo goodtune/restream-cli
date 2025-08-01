@@ -1,6 +1,5 @@
 """Integration tests for schemas with comprehensive API response examples."""
 
-
 import requests
 import responses
 

@@ -2,14 +2,17 @@ import socket
 import tempfile
 import urllib.parse
 from pathlib import Path
+from threading import Event
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 import requests
 import responses
+from click.testing import CliRunner
 
 from restream_io import auth, config
+from restream_io.cli import login
 from restream_io.errors import AuthenticationError
 
 
@@ -220,8 +223,6 @@ class TestOAuthCallbackHandler:
 
     def test_callback_handler_success(self):
         """Test successful OAuth callback handling."""
-        from threading import Event
-
         expected_state = "test-state-123"
         callback_event = Event()
 
@@ -251,8 +252,6 @@ class TestOAuthCallbackHandler:
 
     def test_callback_handler_state_mismatch(self):
         """Test OAuth callback with mismatched state."""
-        from threading import Event
-
         expected_state = "correct-state"
         callback_event = Event()
 
@@ -277,8 +276,6 @@ class TestOAuthCallbackHandler:
 
     def test_callback_handler_oauth_error(self):
         """Test OAuth callback with error parameter."""
-        from threading import Event
-
         expected_state = "test-state"
         callback_event = Event()
 
@@ -431,20 +428,13 @@ class TestPerformLogin:
 class TestIntegration:
     """Integration tests for the OAuth flow."""
 
-    def test_login_command_missing_client_id(self, capsys):
+    def test_login_command_missing_client_id(self):
         """Test login command with missing client ID."""
-        import argparse
-
-        from restream_io.cli import cmd_login
-
-        args = argparse.Namespace(port=12000)
+        runner = CliRunner()
 
         with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises(SystemExit) as exc_info:
-                cmd_login(args)
+            result = runner.invoke(login, ["--port", "12000"])
 
-            assert exc_info.value.code == 1
-
-            captured = capsys.readouterr()
-            assert "Login failed" in captured.err
-            assert "RESTREAM_CLIENT_ID" in captured.err
+            assert result.exit_code == 1
+            assert "Login failed" in result.output
+            assert "RESTREAM_CLIENT_ID" in result.output

@@ -1,9 +1,9 @@
-import argparse
 import json
 import sys
 from importlib.metadata import version
 
 import attrs
+import click
 
 from .api import RestreamClient
 from .auth import perform_login
@@ -38,10 +38,14 @@ def _handle_api_error(e: APIError):
     sys.exit(1)
 
 
-def _output_result(data, json_output=False):
+@click.pass_context
+def _output_result(ctx, data):
     """Output result in the appropriate format."""
     # Convert attrs objects to dict for JSON serialization
     serializable_data = _attrs_to_dict(data)
+
+    # Check if --json flag was passed at the root level
+    json_output = ctx.find_root().params.get("json", False)
 
     if json_output:
         print(json.dumps(serializable_data, indent=2, default=str))
@@ -51,14 +55,24 @@ def _output_result(data, json_output=False):
         )  # For now, always use JSON format
 
 
-def cmd_version(args):
+@click.command()
+def version_cmd():
+    """Show version information."""
     print(version("restream.io"))
 
 
-def cmd_login(args):
+@click.command()
+@click.option(
+    "-p",
+    "--port",
+    type=int,
+    default=12000,
+    help="Port for local OAuth callback server (default: 12000)",
+)
+def login(port):
     """Perform OAuth2 login flow."""
     try:
-        success = perform_login(redirect_port=args.port)
+        success = perform_login(redirect_port=port)
         if success:
             sys.exit(0)
         else:
@@ -75,96 +89,88 @@ def cmd_login(args):
         sys.exit(1)
 
 
-def cmd_profile(args):
+@click.command()
+def profile():
     """Fetch user profile from Restream API."""
     try:
         client = _get_client()
         profile = client.get_profile()
-        _output_result(profile, getattr(args, "json", False))
+        _output_result(profile)
     except APIError as e:
         _handle_api_error(e)
 
 
-def cmd_channel_list(args):
+@click.command("list")
+def channel_list():
     """List channels."""
     try:
         client = _get_client()
         channels = client.list_channels()
-        _output_result(channels, getattr(args, "json", False))
+        _output_result(channels)
     except APIError as e:
         _handle_api_error(e)
 
 
-def cmd_channel_get(args):
+@click.command("get")
+@click.argument("channel_id", required=True)
+def channel_get(channel_id):
     """Get details for a specific channel."""
-    if not args.id:
-        print("channel get requires an ID", file=sys.stderr)
-        sys.exit(1)
-
     try:
         client = _get_client()
-        channel = client.get_channel(args.id)
-        _output_result(channel, getattr(args, "json", False))
+        channel = client.get_channel(channel_id)
+        _output_result(channel)
     except APIError as e:
         _handle_api_error(e)
 
 
-def cmd_event_list(args):
+@click.command("list")
+def event_list():
     """List events."""
     try:
         client = _get_client()
         events = client.list_events()
-        _output_result(events, getattr(args, "json", False))
+        _output_result(events)
     except APIError as e:
         _handle_api_error(e)
 
 
+@click.group()
+@click.option("--json", is_flag=True, help="Output results in JSON format")
+@click.pass_context
+def cli(ctx, json):
+    """CLI for Restream.io API"""
+    ctx.ensure_object(dict)
+    ctx.obj["json"] = json
+
+
+@click.group()
+def channel():
+    """Channel management commands."""
+    pass
+
+
+@click.group()
+def event():
+    """Event management commands."""
+    pass
+
+
+# Add commands to groups
+channel.add_command(channel_list)
+channel.add_command(channel_get)
+event.add_command(event_list)
+
+# Add commands to main CLI
+cli.add_command(login)
+cli.add_command(profile)
+cli.add_command(channel)
+cli.add_command(event)
+cli.add_command(version_cmd, name="version")
+
+
 def main():
-    parser = argparse.ArgumentParser(
-        prog="restream.io", description="CLI for Restream.io API"
-    )
-    parser.add_argument(
-        "--json", action="store_true", help="Output results in JSON format"
-    )
-    sub = parser.add_subparsers(dest="command")
-
-    login_parser = sub.add_parser("login")
-    login_parser.add_argument(
-        "-p",
-        "--port",
-        type=int,
-        default=12000,
-        help="Port for local OAuth callback server (default: 12000)",
-    )
-    login_parser.set_defaults(func=cmd_login)
-
-    profile_parser = sub.add_parser("profile")
-    profile_parser.set_defaults(func=cmd_profile)
-
-    channel = sub.add_parser("channel")
-    channel_sub = channel.add_subparsers(dest="subcmd")
-
-    channel_list_parser = channel_sub.add_parser("list")
-    channel_list_parser.set_defaults(func=cmd_channel_list)
-
-    ch_get = channel_sub.add_parser("get")
-    ch_get.add_argument("id", help="Channel ID")
-    ch_get.set_defaults(func=cmd_channel_get)
-
-    event = sub.add_parser("event")
-    event_sub = event.add_subparsers(dest="subcmd")
-
-    event_list_parser = event_sub.add_parser("list")
-    event_list_parser.set_defaults(func=cmd_event_list)
-
-    version_parser = sub.add_parser("version")
-    version_parser.set_defaults(func=cmd_version)
-
-    args = parser.parse_args()
-    if not hasattr(args, "func") or args.command is None:
-        parser.print_help()
-        sys.exit(1)
-    args.func(args)
+    """Main entry point for the CLI."""
+    cli()
 
 
 if __name__ == "__main__":  # allow direct execution for tests
