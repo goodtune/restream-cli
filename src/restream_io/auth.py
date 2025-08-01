@@ -244,26 +244,17 @@ def perform_login(client_id: str = None, redirect_port: int = None, use_pkce: bo
     
     # Set up callback handler and server
     callback_event = Event()
-    auth_code = None
-    auth_error = None
+    callback_results = {'auth_code': None, 'auth_error': None}
+    
+    class CallbackHandlerWithResults(OAuthCallbackHandler):
+        def do_GET(self):
+            super().do_GET()
+            # Store results after processing
+            callback_results['auth_code'] = getattr(self, 'auth_code', None)
+            callback_results['auth_error'] = getattr(self, 'auth_error', None)
     
     def handler_factory(*args, **kwargs):
-        handler = OAuthCallbackHandler(state, callback_event, *args, **kwargs)
-        nonlocal auth_code, auth_error
-        # Store references to the handler's results
-        def store_results():
-            nonlocal auth_code, auth_error
-            auth_code = getattr(handler, 'auth_code', None)
-            auth_error = getattr(handler, 'auth_error', None)
-        
-        # Override the callback event setter to store results
-        original_set = callback_event.set
-        def set_with_store():
-            store_results()
-            original_set()
-        callback_event.set = set_with_store
-        
-        return handler
+        return CallbackHandlerWithResults(state, callback_event, *args, **kwargs)
     
     # Start local server
     try:
@@ -289,15 +280,15 @@ def perform_login(client_id: str = None, redirect_port: int = None, use_pkce: bo
             raise AuthenticationError("Login timed out - no response received within 5 minutes")
         
         # Check for errors from callback
-        if auth_error:
-            raise AuthenticationError(auth_error)
+        if callback_results['auth_error']:
+            raise AuthenticationError(callback_results['auth_error'])
         
-        if not auth_code:
+        if not callback_results['auth_code']:
             raise AuthenticationError("No authorization code received")
         
         # Exchange code for tokens
         print("Authorization code received, exchanging for tokens...")
-        token_response = exchange_code_for_tokens(auth_code, redirect_uri, code_verifier)
+        token_response = exchange_code_for_tokens(callback_results['auth_code'], redirect_uri, code_verifier)
         
         # Save tokens
         save_tokens(token_response)
