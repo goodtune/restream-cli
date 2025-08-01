@@ -13,8 +13,9 @@ description = "CLI for interacting with the Restream.io API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "requests",
-  "attrs",
+  "attrs>=25.3.0",
+  "click>=8.2.1",
+  "requests>=2.32.4",
 ]
 scripts = { "restream.io" = "restream_io.cli:main" }
 
