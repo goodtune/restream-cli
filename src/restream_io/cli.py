@@ -3,9 +3,23 @@ import json
 import sys
 from importlib.metadata import version
 
+import attrs
+
 from .api import RestreamClient
 from .auth import perform_login
 from .errors import APIError, AuthenticationError
+
+
+def _attrs_to_dict(obj):
+    """Convert attrs objects to dict for JSON serialization."""
+    if attrs.has(obj):
+        return attrs.asdict(obj)
+    elif isinstance(obj, list):
+        return [_attrs_to_dict(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: _attrs_to_dict(value) for key, value in obj.items()}
+    else:
+        return obj
 
 
 def _get_client():
@@ -26,10 +40,13 @@ def _handle_api_error(e: APIError):
 
 def _output_result(data, json_output=False):
     """Output result in the appropriate format."""
+    # Convert attrs objects to dict for JSON serialization
+    serializable_data = _attrs_to_dict(data)
+    
     if json_output:
-        print(json.dumps(data, indent=2))
+        print(json.dumps(serializable_data, indent=2, default=str))
     else:
-        print(json.dumps(data, indent=2))  # For now, always use JSON format
+        print(json.dumps(serializable_data, indent=2, default=str))  # For now, always use JSON format
 
 
 def cmd_version(args):

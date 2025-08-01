@@ -10,6 +10,7 @@ import responses
 
 from restream_io.api import RestreamClient
 from restream_io.errors import APIError, AuthenticationError
+from restream_io.schemas import Profile
 
 
 class TestAPIError:
@@ -243,14 +244,15 @@ class TestRetryLogic:
         """Test that transient errors are retried."""
         # First call returns 500 (transient), second call succeeds
         responses.add("GET", "https://api.restream.io/v1/profile", status=500)
-        responses.add("GET", "https://api.restream.io/v1/profile", json={"id": "user123"}, status=200)
+        responses.add("GET", "https://api.restream.io/v1/profile", json={"id": "user123", "username": "test", "display_name": "Test User", "email": "test@example.com"}, status=200)
         
         session = requests.Session()
         client = RestreamClient(session, "test-token")
         
         # This should succeed after retry
         result = client.get_profile()
-        assert result == {"id": "user123"}
+        assert result.user.id == "user123"
+        assert result.user.display_name == "Test User"
         assert len(responses.calls) == 2
     
     @responses.activate

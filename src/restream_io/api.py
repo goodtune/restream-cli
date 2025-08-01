@@ -1,10 +1,12 @@
 import time
-from typing import Optional
+from datetime import datetime
+from typing import List, Optional, Union
 
 import requests
 
 from .config import load_tokens, save_tokens
 from .errors import APIError, AuthenticationError
+from .schemas import Channel, ChannelList, EventList, Profile, StreamEvent, User
 from .utils import retry_on_transient_error
 
 BASE_URL = "https://api.restream.io/v1"  # placeholder; confirm from docs
@@ -143,26 +145,174 @@ class RestreamClient:
         except requests.RequestException as e:
             raise APIError(f"Network error: {e}", url=url)
 
-    @retry_on_transient_error(max_retries=3)
-    def get_profile(self):
-        """Get user profile information."""
-        return self._make_request("GET", "/profile")
+    def _parse_datetime(self, dt_str: Optional[str]) -> Optional[datetime]:
+        """Parse datetime string from API response.
+        
+        Args:
+            dt_str: ISO format datetime string
+            
+        Returns:
+            Parsed datetime object or None
+        """
+        if not dt_str:
+            return None
+        try:
+            # Handle various ISO format variations
+            if dt_str.endswith('Z'):
+                dt_str = dt_str[:-1] + '+00:00'
+            return datetime.fromisoformat(dt_str)
+        except (ValueError, TypeError):
+            return None
+
+    def _convert_user_data(self, data: dict) -> User:
+        """Convert raw user data to User object.
+        
+        Args:
+            data: Raw user data from API
+            
+        Returns:
+            User object
+        """
+        return User(
+            id=data["id"],
+            username=data.get("username", ""),
+            display_name=data.get("display_name", data.get("name", "")),
+            email=data.get("email", ""),
+            avatar_url=data.get("avatar_url"),
+            created_at=self._parse_datetime(data.get("created_at")),
+            verified=data.get("verified", False)
+        )
+
+    def _convert_channel_data(self, data: dict) -> Channel:
+        """Convert raw channel data to Channel object.
+        
+        Args:
+            data: Raw channel data from API
+            
+        Returns:
+            Channel object
+        """
+        return Channel(
+            id=data["id"],
+            name=data["name"],
+            platform=data.get("platform", ""),
+            enabled=data.get("enabled", True),
+            url=data.get("url"),
+            thumbnail_url=data.get("thumbnail_url"),
+            description=data.get("description"),
+            followers_count=data.get("followers_count"),
+            created_at=self._parse_datetime(data.get("created_at")),
+            updated_at=self._parse_datetime(data.get("updated_at"))
+        )
+
+    def _convert_event_data(self, data: dict) -> StreamEvent:
+        """Convert raw event data to StreamEvent object.
+        
+        Args:
+            data: Raw event data from API
+            
+        Returns:
+            StreamEvent object
+        """
+        return StreamEvent(
+            id=data["id"],
+            title=data.get("title", ""),
+            status=data.get("status", ""),
+            type=data.get("type", ""),
+            start_time=self._parse_datetime(data.get("start_time")),
+            end_time=self._parse_datetime(data.get("end_time")),
+            duration=data.get("duration"),
+            viewer_count=data.get("viewer_count"),
+            peak_viewers=data.get("peak_viewers"),
+            created_at=self._parse_datetime(data.get("created_at")),
+            updated_at=self._parse_datetime(data.get("updated_at"))
+        )
 
     @retry_on_transient_error(max_retries=3)
-    def list_channels(self):
-        """List all channels for the authenticated user."""
-        return self._make_request("GET", "/channels")
+    def get_profile(self) -> Profile:
+        """Get user profile information.
+        
+        Returns:
+            Profile object with user information
+        """
+        data = self._make_request("GET", "/profile")
+        
+        # Handle both nested and flat profile responses
+        if "user" in data:
+            user_data = data["user"]
+        else:
+            user_data = data
+            
+        user = self._convert_user_data(user_data)
+        
+        return Profile(
+            user=user,
+            subscription_plan=data.get("subscription_plan"),
+            streaming_quota=data.get("streaming_quota"),
+            features=data.get("features")
+        )
 
     @retry_on_transient_error(max_retries=3)
-    def get_channel(self, channel_id: str):
+    def list_channels(self) -> Union[ChannelList, List[Channel]]:
+        """List all channels for the authenticated user.
+        
+        Returns:
+            ChannelList object or list of Channel objects for backward compatibility
+        """
+        data = self._make_request("GET", "/channels")
+        
+        # Handle both paginated and simple list responses
+        if isinstance(data, list):
+            # Simple list response - convert to list of Channel objects
+            channels = [self._convert_channel_data(item) for item in data]
+            return channels
+        elif isinstance(data, dict) and "channels" in data:
+            # Paginated response
+            channels = [self._convert_channel_data(item) for item in data["channels"]]
+            return ChannelList(
+                channels=channels,
+                total=data.get("total", len(channels))
+            )
+        else:
+            # Fallback to empty list
+            return []
+
+    @retry_on_transient_error(max_retries=3)
+    def get_channel(self, channel_id: str) -> Channel:
         """Get details for a specific channel.
         
         Args:
             channel_id: The channel ID to retrieve
+            
+        Returns:
+            Channel object with channel details
         """
-        return self._make_request("GET", f"/channels/{channel_id}")
+        data = self._make_request("GET", f"/channels/{channel_id}")
+        return self._convert_channel_data(data)
 
     @retry_on_transient_error(max_retries=3)
-    def list_events(self):
-        """List all events for the authenticated user."""
-        return self._make_request("GET", "/events")
+    def list_events(self) -> Union[EventList, List[StreamEvent]]:
+        """List all events for the authenticated user.
+        
+        Returns:
+            EventList object or list of StreamEvent objects for backward compatibility
+        """
+        data = self._make_request("GET", "/events")
+        
+        # Handle both paginated and simple list responses
+        if isinstance(data, list):
+            # Simple list response - convert to list of StreamEvent objects
+            events = [self._convert_event_data(item) for item in data]
+            return events
+        elif isinstance(data, dict) and "events" in data:
+            # Paginated response
+            events = [self._convert_event_data(item) for item in data["events"]]
+            return EventList(
+                events=events,
+                total=data.get("total", len(events)),
+                page=data.get("page", 1),
+                per_page=data.get("per_page", 20)
+            )
+        else:
+            # Fallback to empty list
+            return []
