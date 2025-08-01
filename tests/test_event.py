@@ -2,48 +2,31 @@ import requests
 import responses
 
 from restream_io.api import RestreamClient
-from restream_io.schemas import EventList, StreamEvent
+from restream_io.schemas import StreamEvent, EventDestination
 
 
 @responses.activate
-def test_list_events_simple_array():
-    """Test list events endpoint with simple array response."""
+def test_list_events():
+    """Test list events endpoint with actual API response format."""
     token = "fake-token"
-    # Example payload based on typical streaming platform event structure
+    # Exact payload from API documentation
     events_data = [
         {
-            "id": "evt_live_stream_abc123",
-            "title": "Morning Gaming Session",
-            "status": "live",
-            "type": "stream",
-            "start_time": "2024-01-20T09:00:00Z",
-            "duration": 7200,  # 2 hours in seconds
-            "viewer_count": 145,
-            "peak_viewers": 203,
-            "created_at": "2024-01-20T08:45:00Z",
-            "updated_at": "2024-01-20T11:15:00Z"
-        },
-        {
-            "id": "evt_scheduled_abc456",
-            "title": "Weekend Variety Stream",
-            "status": "scheduled",
-            "type": "stream",
-            "start_time": "2024-01-27T20:00:00Z",
-            "created_at": "2024-01-15T14:30:00Z",
-            "updated_at": "2024-01-15T14:30:00Z"
-        },
-        {
-            "id": "evt_ended_xyz789",
-            "title": "Tutorial: Setting up OBS",
-            "status": "ended",
-            "type": "tutorial",
-            "start_time": "2024-01-18T15:00:00Z",
-            "end_time": "2024-01-18T16:30:00Z",
-            "duration": 5400,  # 1.5 hours
-            "viewer_count": 0,
-            "peak_viewers": 89,
-            "created_at": "2024-01-18T14:45:00Z",
-            "updated_at": "2024-01-18T16:35:00Z"
+            "id": "2527849f-f961-4b1d-8ae0-8eae4f068327",
+            "status": "upcoming",
+            "title": "Event title",
+            "description": "Event description",
+            "coverUrl": "URL or null",
+            "scheduledFor": 1599983310,
+            "startedAt": None,
+            "finishedAt": None,
+            "destinations": [
+                {
+                    "channelId": 1,
+                    "externalUrl": "URL or null",
+                    "streamingPlatformId": 5
+                }
+            ]
         }
     ]
     
@@ -55,54 +38,111 @@ def test_list_events_simple_array():
     client = RestreamClient(session, token)
     result = client.list_events()
     
-    # Should return list of StreamEvent objects for backward compatibility
+    # Should return list of StreamEvent objects
     assert isinstance(result, list)
-    assert len(result) == 3
+    assert len(result) == 1
     assert all(isinstance(event, StreamEvent) for event in result)
+    
+    # Verify event
+    event = result[0]
+    assert event.id == "2527849f-f961-4b1d-8ae0-8eae4f068327"
+    assert event.status == "upcoming"
+    assert event.title == "Event title"
+    assert event.description == "Event description"
+    assert event.coverUrl == "URL or null"
+    assert event.scheduledFor == 1599983310
+    assert event.startedAt is None
+    assert event.finishedAt is None
+    
+    # Verify destinations
+    assert len(event.destinations) == 1
+    destination = event.destinations[0]
+    assert isinstance(destination, EventDestination)
+    assert destination.channelId == 1
+    assert destination.externalUrl == "URL or null"
+    assert destination.streamingPlatformId == 5
+
+
+@responses.activate
+def test_list_events_with_realistic_data():
+    """Test list events with more realistic data."""
+    token = "fake-token"
+    events_data = [
+        {
+            "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "status": "live",
+            "title": "Gaming Stream - Elden Ring",
+            "description": "Playing through Elden Ring boss battles",
+            "coverUrl": "https://cdn.restream.io/covers/event123.jpg",
+            "scheduledFor": 1640995200,  # 2022-01-01 00:00:00 UTC
+            "startedAt": 1640995320,     # Started 2 minutes later
+            "finishedAt": None,          # Still live
+            "destinations": [
+                {
+                    "channelId": 1001,
+                    "externalUrl": "https://youtube.com/watch?v=xyz123",
+                    "streamingPlatformId": 1
+                },
+                {
+                    "channelId": 1002,
+                    "externalUrl": "https://twitch.tv/streamerpro",
+                    "streamingPlatformId": 2
+                }
+            ]
+        },
+        {
+            "id": "7b68c3e2-1234-4567-89ab-cdef01234567",
+            "status": "ended",
+            "title": "Tutorial: Setting up OBS",
+            "description": "Complete guide to OBS configuration",
+            "coverUrl": None,
+            "scheduledFor": 1640908800,  # Earlier timestamp
+            "startedAt": 1640908900,
+            "finishedAt": 1640912500,    # 1 hour stream
+            "destinations": [
+                {
+                    "channelId": 1001,
+                    "externalUrl": None,
+                    "streamingPlatformId": 1
+                }
+            ]
+        }
+    ]
+    
+    responses.add(
+        "GET", "https://api.restream.io/v1/events", json=events_data, status=200
+    )
+    
+    session = requests.Session()
+    client = RestreamClient(session, token)
+    result = client.list_events()
+    
+    # Should return list of StreamEvent objects
+    assert isinstance(result, list)
+    assert len(result) == 2
     
     # Verify live event
     live_event = result[0]
-    assert live_event.id == "evt_live_stream_abc123"
-    assert live_event.title == "Morning Gaming Session"
     assert live_event.status == "live"
-    assert live_event.type == "stream"
-    assert live_event.viewer_count == 145
-    assert live_event.peak_viewers == 203
-    assert live_event.duration == 7200
+    assert live_event.title == "Gaming Stream - Elden Ring"
+    assert live_event.startedAt == 1640995320
+    assert live_event.finishedAt is None
+    assert len(live_event.destinations) == 2
     
-    # Verify scheduled event
-    scheduled_event = result[1]
-    assert scheduled_event.status == "scheduled"
-    assert scheduled_event.end_time is None  # Not ended yet
-    assert scheduled_event.viewer_count is None  # Not started
-    
-    # Verify ended event  
-    ended_event = result[2]
+    # Verify ended event
+    ended_event = result[1]
     assert ended_event.status == "ended"
-    assert ended_event.end_time is not None
-    assert ended_event.viewer_count == 0  # Stream ended
+    assert ended_event.title == "Tutorial: Setting up OBS"
+    assert ended_event.coverUrl is None
+    assert ended_event.finishedAt == 1640912500
+    assert len(ended_event.destinations) == 1
 
 
 @responses.activate
-def test_list_events_paginated_response():
-    """Test list events endpoint with paginated response structure."""
+def test_list_events_empty():
+    """Test list events with empty response."""
     token = "fake-token"
-    events_data = {
-        "events": [
-            {
-                "id": "evt_live_stream_abc123",
-                "title": "Morning Gaming Session",
-                "status": "live",
-                "type": "stream",
-                "start_time": "2024-01-20T09:00:00Z",
-                "viewer_count": 145,
-                "peak_viewers": 203
-            }
-        ],
-        "total": 25,
-        "page": 1,
-        "per_page": 20
-    }
+    events_data = []
     
     responses.add(
         "GET", "https://api.restream.io/v1/events", json=events_data, status=200
@@ -112,41 +152,6 @@ def test_list_events_paginated_response():
     client = RestreamClient(session, token)
     result = client.list_events()
     
-    # Should return EventList object
-    assert isinstance(result, EventList)
-    assert result.total == 25
-    assert result.page == 1
-    assert result.per_page == 20
-    assert len(result.events) == 1
-    assert isinstance(result.events[0], StreamEvent)
-
-
-@responses.activate
-def test_list_events_minimal():
-    """Test list events with minimal required fields."""
-    token = "fake-token"
-    events_data = [
-        {
-            "id": "evt_minimal",
-            "title": "",
-            "status": "",
-            "type": ""
-        }
-    ]
-    
-    responses.add(
-        "GET", "https://api.restream.io/v1/events", json=events_data, status=200
-    )
-    
-    session = requests.Session()
-    client = RestreamClient(session, token)
-    result = client.list_events()
-    
-    # Should return list with StreamEvent object with defaults
+    # Should return empty list
     assert isinstance(result, list)
-    assert len(result) == 1
-    event = result[0]
-    assert isinstance(event, StreamEvent)
-    assert event.id == "evt_minimal"
-    assert event.title == ""
-    assert event.viewer_count is None  # Default value
+    assert len(result) == 0

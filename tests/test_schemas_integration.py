@@ -1,50 +1,30 @@
 """Integration tests for schemas with comprehensive API response examples."""
 import json
-from datetime import datetime, timezone
 
 import pytest
 import requests
 import responses
 
 from restream_io.api import RestreamClient
-from restream_io.schemas import Channel, ChannelList, EventList, Profile, StreamEvent, User
+from restream_io.schemas import Channel, EventDestination, Profile, StreamEvent
 
 
 class TestSchemaIntegration:
     """Test schemas against realistic API response payloads."""
 
     @responses.activate
-    def test_comprehensive_profile_response(self):
-        """Test profile endpoint with comprehensive response data."""
-        # Example response payload mimicking real streaming platform APIs
-        comprehensive_profile = {
-            "id": "usr_5f9a8b1234567890abcdef12", 
-            "username": "prstreamer2024",
-            "display_name": "Pro Streamer",
-            "email": "streamer@example.com",
-            "avatar_url": "https://cdn.restream.io/avatars/usr_5f9a8b1234567890abcdef12.webp",
-            "created_at": "2023-01-15T10:30:00.000Z",
-            "verified": True,
-            "subscription_plan": "professional",
-            "streaming_quota": {
-                "hours_used": 45.5,
-                "hours_limit": 100,
-                "reset_date": "2024-02-01T00:00:00Z",
-                "overage_allowed": True
-            },
-            "features": [
-                "multi_platform_streaming",
-                "custom_overlays", 
-                "advanced_analytics",
-                "chat_integration",
-                "stream_recording",
-                "custom_rtmp"
-            ]
+    def test_profile_response_from_docs(self):
+        """Test profile endpoint with exact response from API documentation."""
+        # Exact response from API documentation
+        profile_response = {
+            "id": 000,
+            "username": "xxx", 
+            "email": "xxx"
         }
         
         responses.add(
             "GET", "https://api.restream.io/v1/profile", 
-            json=comprehensive_profile, status=200
+            json=profile_response, status=200
         )
         
         client = RestreamClient(requests.Session(), "test-token")
@@ -52,69 +32,60 @@ class TestSchemaIntegration:
         
         # Validate Profile object structure
         assert isinstance(result, Profile)
-        assert isinstance(result.user, User)
-        
-        # Validate user fields
-        assert result.user.id == "usr_5f9a8b1234567890abcdef12"
-        assert result.user.username == "prstreamer2024"
-        assert result.user.display_name == "Pro Streamer"
-        assert result.user.email == "streamer@example.com"
-        assert result.user.verified is True
-        assert result.user.created_at == datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
-        
-        # Validate profile-level fields
-        assert result.subscription_plan == "professional"
-        assert result.streaming_quota["hours_used"] == 45.5
-        assert result.features == [
-            "multi_platform_streaming", "custom_overlays", "advanced_analytics",
-            "chat_integration", "stream_recording", "custom_rtmp"
-        ]
+        assert result.id == 000
+        assert result.username == "xxx"
+        assert result.email == "xxx"
 
     @responses.activate
-    def test_comprehensive_channels_response(self):
-        """Test channels endpoint with comprehensive channel data."""
-        comprehensive_channels = [
+    def test_realistic_profile_response(self):
+        """Test profile endpoint with realistic values."""
+        profile_response = {
+            "id": 123456,
+            "username": "gamer_streamer",
+            "email": "streamer@example.com"
+        }
+        
+        responses.add(
+            "GET", "https://api.restream.io/v1/profile", 
+            json=profile_response, status=200
+        )
+        
+        client = RestreamClient(requests.Session(), "test-token")
+        result = client.get_profile()
+        
+        assert isinstance(result, Profile)
+        assert result.id == 123456
+        assert result.username == "gamer_streamer"
+        assert result.email == "streamer@example.com"
+
+    @responses.activate
+    def test_channels_response_from_docs(self):
+        """Test channels endpoint with exact response from API documentation."""
+        # Exact response from API documentation
+        channels_response = [
             {
-                "id": "ch_yt_UCabc123def456789012345",
-                "name": "Gaming Adventures",
-                "platform": "youtube",
-                "enabled": True,
-                "url": "https://youtube.com/channel/UCabc123def456789012345",
-                "thumbnail_url": "https://yt3.ggpht.com/ytc/channel_avatar.jpg",
-                "description": "Daily gaming content, tutorials, and live streams covering the latest games and gaming news.",
-                "followers_count": 125840,
-                "created_at": "2023-01-15T10:30:00Z",
-                "updated_at": "2024-01-20T14:25:30Z"
+                "id": 000,
+                "streamingPlatformId": 000,
+                "embedUrl": "https://beam.pro/embed/player/xxx",
+                "url": "https://beam.pro/xxx",
+                "identifier": "xxx",
+                "displayName": "xxx",
+                "active": True
             },
             {
-                "id": "ch_tw_streamerpro2024",
-                "name": "StreamerPro Live",
-                "platform": "twitch",
-                "enabled": True,
-                "url": "https://twitch.tv/streamerpro2024",
-                "thumbnail_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/abc123.png",
-                "description": "Variety streamer focusing on indie games, Just Chatting, and community events.",
-                "followers_count": 34750,
-                "created_at": "2023-03-20T16:45:00Z",
-                "updated_at": "2024-01-18T09:12:45Z"
-            },
-            {
-                "id": "ch_fb_creativestudios",
-                "name": "Creative Studios Live",
-                "platform": "facebook",
-                "enabled": False,
-                "url": "https://facebook.com/creativestudios",
-                "thumbnail_url": "https://scontent.xx.fbcdn.net/v/profile_pic.jpg",
-                "description": "Art, music production, and creative content streaming.",
-                "followers_count": 8420,
-                "created_at": "2023-06-10T12:00:00Z",
-                "updated_at": "2023-12-15T18:30:00Z"
+                "id": 111,
+                "streamingPlatformId": 111,
+                "embedUrl": "http://www.twitch.tv/xxx/embed",
+                "url": "http://twitch.tv/xxx",
+                "identifier": "xxx",
+                "displayName": "xxx",
+                "active": False
             }
         ]
         
         responses.add(
             "GET", "https://api.restream.io/v1/channels",
-            json=comprehensive_channels, status=200
+            json=channels_response, status=200
         )
         
         client = RestreamClient(requests.Session(), "test-token")
@@ -122,66 +93,99 @@ class TestSchemaIntegration:
         
         # Should return list of Channel objects
         assert isinstance(result, list)
-        assert len(result) == 3
+        assert len(result) == 2
         assert all(isinstance(ch, Channel) for ch in result)
+        
+        # Validate first channel
+        channel_0 = result[0]
+        assert channel_0.id == 000
+        assert channel_0.streamingPlatformId == 000
+        assert channel_0.embedUrl == "https://beam.pro/embed/player/xxx"
+        assert channel_0.url == "https://beam.pro/xxx"
+        assert channel_0.identifier == "xxx"
+        assert channel_0.displayName == "xxx"
+        assert channel_0.active is True
+        
+        # Validate second channel
+        channel_1 = result[1]
+        assert channel_1.id == 111
+        assert channel_1.active is False
+
+    @responses.activate
+    def test_realistic_channels_response(self):
+        """Test channels endpoint with realistic values."""
+        channels_response = [
+            {
+                "id": 1001,
+                "streamingPlatformId": 1,
+                "embedUrl": "https://www.youtube.com/embed/live_stream?channel=UCabc123",
+                "url": "https://youtube.com/channel/UCabc123",
+                "identifier": "UCabc123",
+                "displayName": "Gaming Adventures",
+                "active": True
+            },
+            {
+                "id": 1002,
+                "streamingPlatformId": 2,
+                "embedUrl": "https://player.twitch.tv/?channel=streamerpro",
+                "url": "https://twitch.tv/streamerpro",
+                "identifier": "streamerpro", 
+                "displayName": "StreamerPro Live",
+                "active": True
+            }
+        ]
+        
+        responses.add(
+            "GET", "https://api.restream.io/v1/channels",
+            json=channels_response, status=200
+        )
+        
+        client = RestreamClient(requests.Session(), "test-token")
+        result = client.list_channels()
+        
+        assert isinstance(result, list)
+        assert len(result) == 2
         
         # Validate YouTube channel
         yt_channel = result[0]
-        assert yt_channel.id == "ch_yt_UCabc123def456789012345"
-        assert yt_channel.name == "Gaming Adventures"
-        assert yt_channel.platform == "youtube"
-        assert yt_channel.enabled is True
-        assert yt_channel.followers_count == 125840
-        assert yt_channel.created_at == datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert yt_channel.id == 1001
+        assert yt_channel.streamingPlatformId == 1
+        assert yt_channel.displayName == "Gaming Adventures"
+        assert yt_channel.active is True
         
-        # Validate disabled Facebook channel
-        fb_channel = result[2]
-        assert fb_channel.platform == "facebook"
-        assert fb_channel.enabled is False
+        # Validate Twitch channel
+        twitch_channel = result[1]
+        assert twitch_channel.id == 1002
+        assert twitch_channel.streamingPlatformId == 2
+        assert twitch_channel.displayName == "StreamerPro Live"
 
     @responses.activate
-    def test_comprehensive_events_response(self):
-        """Test events endpoint with comprehensive event data."""
-        comprehensive_events = [
+    def test_events_response_from_docs(self):
+        """Test events endpoint with exact response from API documentation."""
+        # Exact response from API documentation
+        events_response = [
             {
-                "id": "evt_live_20240120_gaming",
-                "title": "Weekend Gaming Marathon - Part 2",
-                "status": "live",
-                "type": "gaming",
-                "start_time": "2024-01-20T09:00:00.000Z",
-                "duration": 14400,  # 4 hours
-                "viewer_count": 342,
-                "peak_viewers": 489,
-                "created_at": "2024-01-20T08:45:00Z",
-                "updated_at": "2024-01-20T13:15:30Z"
-            },
-            {
-                "id": "evt_scheduled_20240127_tutorial",
-                "title": "OBS Studio Advanced Setup Tutorial",
-                "status": "scheduled",
-                "type": "educational", 
-                "start_time": "2024-01-27T20:00:00Z",
-                "created_at": "2024-01-15T14:30:00Z",
-                "updated_at": "2024-01-15T14:30:00Z"
-            },
-            {
-                "id": "evt_ended_20240118_variety",
-                "title": "Indie Game Showcase: Hidden Gems",
-                "status": "ended",
-                "type": "variety",
-                "start_time": "2024-01-18T15:00:00Z",
-                "end_time": "2024-01-18T18:30:00Z",
-                "duration": 12600,  # 3.5 hours
-                "viewer_count": 0,
-                "peak_viewers": 156,
-                "created_at": "2024-01-18T14:45:00Z",
-                "updated_at": "2024-01-18T18:35:00Z"
+                "id": "2527849f-f961-4b1d-8ae0-8eae4f068327",
+                "status": "upcoming",
+                "title": "Event title",
+                "description": "Event description",
+                "coverUrl": "URL or null",
+                "scheduledFor": 1599983310,
+                "startedAt": None,
+                "finishedAt": None,
+                "destinations": [
+                    {
+                        "channelId": 1,
+                        "externalUrl": "URL or null",
+                        "streamingPlatformId": 5
+                    }
+                ]
             }
         ]
         
         responses.add(
             "GET", "https://api.restream.io/v1/events",
-            json=comprehensive_events, status=200
+            json=events_response, status=200
         )
         
         client = RestreamClient(requests.Session(), "test-token")
@@ -189,117 +193,128 @@ class TestSchemaIntegration:
         
         # Should return list of StreamEvent objects
         assert isinstance(result, list)
-        assert len(result) == 3
+        assert len(result) == 1
         assert all(isinstance(event, StreamEvent) for event in result)
         
-        # Validate live event
-        live_event = result[0]
-        assert live_event.id == "evt_live_20240120_gaming"
-        assert live_event.title == "Weekend Gaming Marathon - Part 2"
-        assert live_event.status == "live"
-        assert live_event.type == "gaming"
-        assert live_event.viewer_count == 342
-        assert live_event.peak_viewers == 489
-        assert live_event.duration == 14400
-        assert live_event.start_time == datetime(2024, 1, 20, 9, 0, 0, tzinfo=timezone.utc)
+        # Validate event
+        event = result[0]
+        assert event.id == "2527849f-f961-4b1d-8ae0-8eae4f068327"
+        assert event.status == "upcoming"
+        assert event.title == "Event title"
+        assert event.description == "Event description"
+        assert event.coverUrl == "URL or null"
+        assert event.scheduledFor == 1599983310
+        assert event.startedAt is None
+        assert event.finishedAt is None
         
-        # Validate scheduled event (future)
-        scheduled_event = result[1]
-        assert scheduled_event.status == "scheduled"
-        assert scheduled_event.end_time is None
-        assert scheduled_event.viewer_count is None
-        
-        # Validate ended event
-        ended_event = result[2]
-        assert ended_event.status == "ended"
-        assert ended_event.end_time == datetime(2024, 1, 18, 18, 30, 0, tzinfo=timezone.utc)
-        assert ended_event.viewer_count == 0  # Stream ended
+        # Validate destination
+        assert len(event.destinations) == 1
+        destination = event.destinations[0]
+        assert isinstance(destination, EventDestination)
+        assert destination.channelId == 1
+        assert destination.externalUrl == "URL or null"
+        assert destination.streamingPlatformId == 5
 
     @responses.activate
-    def test_paginated_channels_response(self):
-        """Test channels endpoint with paginated response structure."""
-        paginated_response = {
-            "channels": [
-                {
-                    "id": "ch_yt_sample123",
-                    "name": "Sample Channel",
-                    "platform": "youtube", 
-                    "enabled": True,
-                    "followers_count": 1500
-                }
-            ],
-            "total": 15,
-            "page": 1,
-            "per_page": 10,
-            "has_more": True
-        }
-        
-        responses.add(
-            "GET", "https://api.restream.io/v1/channels",
-            json=paginated_response, status=200
-        )
-        
-        client = RestreamClient(requests.Session(), "test-token")
-        result = client.list_channels()
-        
-        # Should return ChannelList object
-        assert isinstance(result, ChannelList)
-        assert result.total == 15
-        assert len(result.channels) == 1
-        assert isinstance(result.channels[0], Channel)
-        assert result.channels[0].platform == "youtube"
-
-    @responses.activate
-    def test_paginated_events_response(self):
-        """Test events endpoint with paginated response structure."""
-        paginated_response = {
-            "events": [
-                {
-                    "id": "evt_sample_123",
-                    "title": "Sample Event",
-                    "status": "ended",
-                    "type": "entertainment",
-                    "peak_viewers": 89
-                }
-            ],
-            "total": 47,
-            "page": 2,
-            "per_page": 20
-        }
+    def test_realistic_events_response(self):
+        """Test events endpoint with realistic values."""
+        events_response = [
+            {
+                "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "status": "live",
+                "title": "Gaming Stream - Elden Ring Boss Fight",
+                "description": "Taking on the hardest bosses in Elden Ring",
+                "coverUrl": "https://cdn.restream.io/covers/event123.jpg",
+                "scheduledFor": 1640995200,
+                "startedAt": 1640995320,
+                "finishedAt": None,
+                "destinations": [
+                    {
+                        "channelId": 1001,
+                        "externalUrl": "https://youtube.com/watch?v=xyz123",
+                        "streamingPlatformId": 1
+                    },
+                    {
+                        "channelId": 1002,
+                        "externalUrl": "https://twitch.tv/streamerpro",
+                        "streamingPlatformId": 2
+                    }
+                ]
+            },
+            {
+                "id": "7b68c3e2-1234-4567-89ab-cdef01234567",
+                "status": "ended",
+                "title": "Tutorial: Setting up OBS for streaming",
+                "description": "Complete guide to OBS configuration",
+                "coverUrl": None,
+                "scheduledFor": 1640908800,
+                "startedAt": 1640908900,
+                "finishedAt": 1640912500,
+                "destinations": [
+                    {
+                        "channelId": 1001,
+                        "externalUrl": None,
+                        "streamingPlatformId": 1
+                    }
+                ]
+            }
+        ]
         
         responses.add(
             "GET", "https://api.restream.io/v1/events",
-            json=paginated_response, status=200
+            json=events_response, status=200
         )
         
         client = RestreamClient(requests.Session(), "test-token")
         result = client.list_events()
         
-        # Should return EventList object
-        assert isinstance(result, EventList)
-        assert result.total == 47
-        assert result.page == 2
-        assert result.per_page == 20
-        assert len(result.events) == 1
-        assert isinstance(result.events[0], StreamEvent)
+        assert isinstance(result, list)
+        assert len(result) == 2
+        
+        # Validate live event
+        live_event = result[0]
+        assert live_event.id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        assert live_event.status == "live"
+        assert live_event.title == "Gaming Stream - Elden Ring Boss Fight"
+        assert live_event.startedAt == 1640995320
+        assert live_event.finishedAt is None
+        assert len(live_event.destinations) == 2
+        
+        # Validate ended event
+        ended_event = result[1]
+        assert ended_event.status == "ended"
+        assert ended_event.title == "Tutorial: Setting up OBS for streaming"
+        assert ended_event.coverUrl is None
+        assert ended_event.finishedAt == 1640912500
+        assert len(ended_event.destinations) == 1
 
-    def test_datetime_parsing_edge_cases(self):
-        """Test datetime parsing with various ISO format variations."""
+    @responses.activate
+    def test_get_single_channel_from_docs(self):
+        """Test get channel endpoint with exact response from API documentation."""
+        # Using the same format as the channels list response
+        channel_response = {
+            "id": 123456,
+            "streamingPlatformId": 000,
+            "embedUrl": "https://beam.pro/embed/player/xxx",
+            "url": "https://beam.pro/xxx",
+            "identifier": "xxx",
+            "displayName": "xxx",
+            "active": True
+        }
+        
+        responses.add(
+            "GET", "https://api.restream.io/v1/channels/123456",
+            json=channel_response, status=200
+        )
+        
         client = RestreamClient(requests.Session(), "test-token")
+        result = client.get_channel("123456")
         
-        # Test various datetime formats
-        test_cases = [
-            ("2024-01-20T09:00:00Z", datetime(2024, 1, 20, 9, 0, 0, tzinfo=timezone.utc)),
-            ("2024-01-20T09:00:00.000Z", datetime(2024, 1, 20, 9, 0, 0, tzinfo=timezone.utc)),
-            ("2024-01-20T09:00:00+00:00", datetime(2024, 1, 20, 9, 0, 0, tzinfo=timezone.utc)),
-            (None, None),
-            ("", None),
-            ("invalid", None)
-        ]
-        
-        for dt_str, expected in test_cases:
-            result = client._parse_datetime(dt_str)
-            if expected is None:
-                assert result is None
-            else:
-                assert result == expected
+        assert isinstance(result, Channel)
+        assert result.id == 123456
+        assert result.streamingPlatformId == 000
+        assert result.embedUrl == "https://beam.pro/embed/player/xxx"
+        assert result.url == "https://beam.pro/xxx"
+        assert result.identifier == "xxx"
+        assert result.displayName == "xxx"
+        assert result.active is True

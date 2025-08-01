@@ -2,47 +2,32 @@ import requests
 import responses
 
 from restream_io.api import RestreamClient
-from restream_io.schemas import Channel, ChannelList
+from restream_io.schemas import Channel
 
 
 @responses.activate
-def test_list_channels_simple_array():
-    """Test list channels endpoint with simple array response."""
+def test_list_channels():
+    """Test list channels endpoint with actual API response format."""
     token = "fake-token"
-    # Example payload based on typical streaming platform channel structure
+    # Exact payload from API documentation
     channels_data = [
         {
-            "id": "ch_youtube_abc123",
-            "name": "My Gaming Channel",
-            "platform": "youtube",
-            "enabled": True,
-            "url": "https://youtube.com/channel/UCabc123",
-            "thumbnail_url": "https://yt3.ggpht.com/a/default-user=s88-c-k-c0x00ffffff-no-rj",
-            "description": "Gaming content and live streams",
-            "followers_count": 15420,
-            "created_at": "2023-01-15T10:30:00Z",
-            "updated_at": "2024-01-20T14:25:00Z"
+            "id": 000,
+            "streamingPlatformId": 000,
+            "embedUrl": "https://beam.pro/embed/player/xxx",
+            "url": "https://beam.pro/xxx",
+            "identifier": "xxx",
+            "displayName": "xxx",
+            "active": True
         },
         {
-            "id": "ch_twitch_xyz789",
-            "name": "StreamerPro",
-            "platform": "twitch",
-            "enabled": True,
-            "url": "https://twitch.tv/streamerpro",
-            "thumbnail_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/xyz789.jpg",
-            "description": "Just chatting and variety gaming",
-            "followers_count": 8750,
-            "created_at": "2023-03-20T16:45:00Z",
-            "updated_at": "2024-01-18T09:12:00Z"
-        },
-        {
-            "id": "ch_facebook_def456",
-            "name": "Creative Streams",
-            "platform": "facebook",
-            "enabled": False,
-            "url": "https://facebook.com/creativestreams",
-            "followers_count": 2340,
-            "created_at": "2023-06-10T12:00:00Z"
+            "id": 111,
+            "streamingPlatformId": 111,
+            "embedUrl": "http://www.twitch.tv/xxx/embed",
+            "url": "http://twitch.tv/xxx",
+            "identifier": "xxx",
+            "displayName": "xxx",
+            "active": False
         }
     ]
     
@@ -54,44 +39,90 @@ def test_list_channels_simple_array():
     client = RestreamClient(session, token)
     result = client.list_channels()
     
-    # Should return list of Channel objects for backward compatibility
+    # Should return list of Channel objects
     assert isinstance(result, list)
-    assert len(result) == 3
+    assert len(result) == 2
     assert all(isinstance(channel, Channel) for channel in result)
     
-    # Verify first channel
-    youtube_channel = result[0]
-    assert youtube_channel.id == "ch_youtube_abc123"
-    assert youtube_channel.name == "My Gaming Channel"
-    assert youtube_channel.platform == "youtube"
-    assert youtube_channel.enabled is True
-    assert youtube_channel.followers_count == 15420
+    # Verify first channel (active)
+    channel_0 = result[0]
+    assert channel_0.id == 000
+    assert channel_0.streamingPlatformId == 000
+    assert channel_0.embedUrl == "https://beam.pro/embed/player/xxx"
+    assert channel_0.url == "https://beam.pro/xxx"
+    assert channel_0.identifier == "xxx"
+    assert channel_0.displayName == "xxx"
+    assert channel_0.active is True
     
-    # Verify disabled channel
-    facebook_channel = result[2]
-    assert facebook_channel.enabled is False
-    assert facebook_channel.thumbnail_url is None  # Not provided in payload
+    # Verify second channel (inactive)
+    channel_1 = result[1]
+    assert channel_1.id == 111
+    assert channel_1.streamingPlatformId == 111
+    assert channel_1.embedUrl == "http://www.twitch.tv/xxx/embed"
+    assert channel_1.url == "http://twitch.tv/xxx"
+    assert channel_1.identifier == "xxx"
+    assert channel_1.displayName == "xxx"
+    assert channel_1.active is False
 
 
 @responses.activate
-def test_list_channels_paginated_response():
-    """Test list channels endpoint with paginated response structure."""
+def test_get_channel():
+    """Test get single channel endpoint with actual API response format."""
     token = "fake-token"
-    channels_data = {
-        "channels": [
-            {
-                "id": "ch_youtube_abc123",
-                "name": "My Gaming Channel", 
-                "platform": "youtube",
-                "enabled": True,
-                "url": "https://youtube.com/channel/UCabc123",
-                "followers_count": 15420
-            }
-        ],
-        "total": 1,
-        "page": 1,
-        "per_page": 20
+    # Exact payload from API documentation
+    channel_data = {
+        "id": 123456,
+        "streamingPlatformId": 000,
+        "embedUrl": "https://beam.pro/embed/player/xxx",
+        "url": "https://beam.pro/xxx",
+        "identifier": "xxx",
+        "displayName": "xxx",
+        "active": True
     }
+    
+    responses.add(
+        "GET", "https://api.restream.io/v1/channels/123456", json=channel_data, status=200
+    )
+    
+    session = requests.Session()
+    client = RestreamClient(session, token)
+    result = client.get_channel("123456")
+    
+    # Should return Channel object
+    assert isinstance(result, Channel)
+    assert result.id == 123456
+    assert result.streamingPlatformId == 000
+    assert result.embedUrl == "https://beam.pro/embed/player/xxx"
+    assert result.url == "https://beam.pro/xxx"
+    assert result.identifier == "xxx"
+    assert result.displayName == "xxx"
+    assert result.active is True
+
+
+@responses.activate
+def test_list_channels_with_realistic_data():
+    """Test list channels with more realistic data."""
+    token = "fake-token"
+    channels_data = [
+        {
+            "id": 1001,
+            "streamingPlatformId": 1,
+            "embedUrl": "https://www.youtube.com/embed/live_stream?channel=UCabc123",
+            "url": "https://youtube.com/channel/UCabc123",
+            "identifier": "UCabc123",
+            "displayName": "My Gaming Channel",
+            "active": True
+        },
+        {
+            "id": 1002,
+            "streamingPlatformId": 2,
+            "embedUrl": "https://player.twitch.tv/?channel=streamerpro",
+            "url": "https://twitch.tv/streamerpro",
+            "identifier": "streamerpro",
+            "displayName": "StreamerPro",
+            "active": False
+        }
+    ]
     
     responses.add(
         "GET", "https://api.restream.io/v1/channels", json=channels_data, status=200
@@ -101,71 +132,18 @@ def test_list_channels_paginated_response():
     client = RestreamClient(session, token)
     result = client.list_channels()
     
-    # Should return ChannelList object
-    assert isinstance(result, ChannelList)
-    assert result.total == 1
-    assert len(result.channels) == 1
-    assert isinstance(result.channels[0], Channel)
-
-
-@responses.activate
-def test_get_channel():
-    """Test get single channel endpoint."""
-    token = "fake-token"
-    channel_data = {
-        "id": "ch_twitch_xyz789",
-        "name": "StreamerPro",
-        "platform": "twitch",
-        "enabled": True,
-        "url": "https://twitch.tv/streamerpro",
-        "thumbnail_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/xyz789.jpg",
-        "description": "Just chatting and variety gaming",
-        "followers_count": 8750,
-        "created_at": "2023-03-20T16:45:00Z",
-        "updated_at": "2024-01-18T09:12:00Z"
-    }
+    # Should return list of Channel objects
+    assert isinstance(result, list)
+    assert len(result) == 2
     
-    responses.add(
-        "GET", "https://api.restream.io/v1/channels/ch_twitch_xyz789", json=channel_data, status=200
-    )
+    # Verify YouTube channel
+    youtube_channel = result[0]
+    assert youtube_channel.id == 1001
+    assert youtube_channel.displayName == "My Gaming Channel"
+    assert youtube_channel.active is True
     
-    session = requests.Session()
-    client = RestreamClient(session, token)
-    result = client.get_channel("ch_twitch_xyz789")
-    
-    # Should return Channel object
-    assert isinstance(result, Channel)
-    assert result.id == "ch_twitch_xyz789"
-    assert result.name == "StreamerPro"
-    assert result.platform == "twitch"
-    assert result.enabled is True
-    assert result.followers_count == 8750
-    assert result.description == "Just chatting and variety gaming"
-
-
-@responses.activate
-def test_get_channel_minimal():
-    """Test get channel with minimal required fields."""
-    token = "fake-token"
-    channel_data = {
-        "id": "ch_minimal",
-        "name": "Minimal Channel",
-        "platform": "unknown",
-        "enabled": True
-    }
-    
-    responses.add(
-        "GET", "https://api.restream.io/v1/channels/ch_minimal", json=channel_data, status=200
-    )
-    
-    session = requests.Session()
-    client = RestreamClient(session, token)
-    result = client.get_channel("ch_minimal")
-    
-    # Should return Channel object with defaults
-    assert isinstance(result, Channel)
-    assert result.id == "ch_minimal"
-    assert result.name == "Minimal Channel"
-    assert result.platform == "unknown"
-    assert result.enabled is True
-    assert result.followers_count is None  # Default value
+    # Verify Twitch channel
+    twitch_channel = result[1]
+    assert twitch_channel.id == 1002
+    assert twitch_channel.displayName == "StreamerPro"
+    assert twitch_channel.active is False
