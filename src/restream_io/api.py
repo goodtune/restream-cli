@@ -182,17 +182,6 @@ class RestreamClient:
         except requests.RequestException as e:
             raise APIError(f"Network error: {e}", url=url)
 
-    def _convert_destination_data(self, data: dict) -> EventDestination:
-        """Convert raw destination data to EventDestination object.
-
-        Args:
-            data: Raw destination data from API
-
-        Returns:
-            EventDestination object
-        """
-        return EventDestination(**data)
-
     def get_profile(self) -> Profile:
         """Get user profile information.
 
