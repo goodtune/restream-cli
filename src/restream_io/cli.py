@@ -134,7 +134,11 @@ def channel_get(ctx, channel_id):
         channel = client.get_channel(channel_id)
         _output_result(channel)
     except APIError as e:
-        _handle_api_error(e)
+        if e.status_code == 404:
+            click.echo(f"Channel not found: {channel_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
 
 
 @click.command("list")

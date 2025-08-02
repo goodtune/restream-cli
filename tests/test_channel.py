@@ -112,6 +112,86 @@ def test_get_channel():
 
 
 @responses.activate
+def test_get_channel_not_found():
+    """Test get channel when channel is not found (404)."""
+    token = "fake-token"
+    
+    responses.add(
+        "GET",
+        "https://api.restream.io/v2/user/channel/999999",
+        json={"message": "Channel not found"},
+        status=404,
+    )
+
+    session = requests.Session()
+    client = RestreamClient(session, token)
+    
+    # Should raise APIError with 404 status
+    try:
+        client.get_channel("999999")
+        assert False, "Expected APIError to be raised"
+    except Exception as e:
+        from restream_io.errors import APIError
+        assert isinstance(e, APIError)
+        assert e.status_code == 404
+
+
+@responses.activate
+def test_get_channel_malformed_data():
+    """Test get channel with malformed response data."""
+    token = "fake-token"
+    
+    # Missing required fields in response
+    malformed_data = {
+        "id": 123456,
+        # Missing required fields like user_id, service_id, etc.
+    }
+    
+    responses.add(
+        "GET",
+        "https://api.restream.io/v2/user/channel/123456",
+        json=malformed_data,
+        status=200,
+    )
+
+    session = requests.Session()
+    client = RestreamClient(session, token)
+    
+    # Should raise an error when trying to create Channel object
+    try:
+        client.get_channel("123456")
+        assert False, "Expected error due to malformed data"
+    except Exception as e:
+        # Should get a TypeError or similar when attrs tries to create Channel
+        assert "required" in str(e).lower() or "missing" in str(e).lower()
+
+
+@responses.activate
+def test_get_channel_permission_denied():
+    """Test get channel when permission is denied (403)."""
+    token = "fake-token"
+    
+    responses.add(
+        "GET",
+        "https://api.restream.io/v2/user/channel/123456",
+        json={"message": "Access denied"},
+        status=403,
+    )
+
+    session = requests.Session()
+    client = RestreamClient(session, token)
+    
+    # Should raise APIError with 403 status
+    try:
+        client.get_channel("123456")
+        assert False, "Expected APIError to be raised"
+    except Exception as e:
+        from restream_io.errors import APIError
+        assert isinstance(e, APIError)
+        assert e.status_code == 403
+
+
+@responses.activate
 def test_list_channels_with_realistic_data():
     """Test list channels with more realistic data."""
     token = "fake-token"
