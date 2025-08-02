@@ -201,10 +201,10 @@ class StreamEvent:
         if self.coverUrl:
             result += f"\n  Cover URL: {self.coverUrl}"
         
-        if self.destinations:
-            result += f"\n  Destinations ({len(self.destinations)}):"
-            for dest in self.destinations:
-                dest_str = str(dest).replace("\n", "\n  ")
-                result += f"\n  {dest_str}"
+        # Always show destinations section, even if empty
+        result += f"\n  Destinations ({len(self.destinations)}):"
+        for dest in self.destinations:
+            dest_str = str(dest).replace("\n", "\n  ")
+            result += f"\n  {dest_str}"
         
         return result
