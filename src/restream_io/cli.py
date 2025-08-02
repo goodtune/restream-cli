@@ -8,7 +8,7 @@ import click
 from .api import RestreamClient
 from .auth import perform_login
 from .errors import APIError, AuthenticationError
-from .schemas import Profile
+from .schemas import Profile, Channel
 
 
 def _attrs_to_dict(obj):
@@ -25,7 +25,7 @@ def _attrs_to_dict(obj):
 
 def _format_human_readable(data):
     """Format data for human-readable output."""
-    if isinstance(data, Profile):
+    if isinstance(data, (Profile, Channel)):
         click.echo(str(data))
     else:
         # Fallback to JSON for other data types
