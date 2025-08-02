@@ -8,7 +8,13 @@ import click
 from .api import RestreamClient
 from .auth import perform_login
 from .errors import APIError, AuthenticationError
-from .schemas import Profile, Channel, ChannelSummary, StreamEvent, EventsHistoryResponse
+from .schemas import (
+    Channel,
+    ChannelSummary,
+    EventsHistoryResponse,
+    Profile,
+    StreamEvent,
+)
 
 
 def _attrs_to_dict(obj):
@@ -25,9 +31,15 @@ def _attrs_to_dict(obj):
 
 def _format_human_readable(data):
     """Format data for human-readable output."""
-    if isinstance(data, (Profile, Channel, ChannelSummary, StreamEvent, EventsHistoryResponse)):
+    if isinstance(
+        data, (Profile, Channel, ChannelSummary, StreamEvent, EventsHistoryResponse)
+    ):
         click.echo(str(data))
-    elif isinstance(data, list) and data and isinstance(data[0], (StreamEvent, ChannelSummary)):
+    elif (
+        isinstance(data, list)
+        and data
+        and isinstance(data[0], (StreamEvent, ChannelSummary))
+    ):
         # Handle lists of events or channel summaries
         for i, item in enumerate(data, 1):
             click.echo(f"{i}. {item}")

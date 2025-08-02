@@ -28,9 +28,9 @@ def test_channel_str_method():
         active=True,
         display_name="Test Channel",
     )
-    
+
     output = str(channel_full)
-    
+
     assert "Channel Information:" in output
     assert "ID: 123456" in output
     assert "Display Name: Test Channel" in output
@@ -41,7 +41,7 @@ def test_channel_str_method():
     assert "User ID: 674443" in output
     assert "Event Identifier: event123" in output
     assert "Event URL: https://example.com/event" in output
-    
+
     # Test with inactive channel and no event info
     channel_minimal = Channel(
         id=999,
@@ -55,9 +55,9 @@ def test_channel_str_method():
         active=False,
         display_name="Minimal Channel",
     )
-    
+
     output_minimal = str(channel_minimal)
-    
+
     assert "Status: Inactive" in output_minimal
     assert "Event Identifier:" not in output_minimal
     assert "Event URL:" not in output_minimal
@@ -81,10 +81,10 @@ def test_channel_get_command_human_readable_output():
     }
 
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/channel/123456", 
-        json=channel_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/channel/123456",
+        json=channel_data,
+        status=200,
     )
 
     runner = CliRunner()
@@ -126,10 +126,10 @@ def test_channel_get_command_json_output():
     }
 
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/channel/123456", 
-        json=channel_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/channel/123456",
+        json=channel_data,
+        status=200,
     )
 
     runner = CliRunner()

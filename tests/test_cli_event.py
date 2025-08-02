@@ -10,7 +10,12 @@ from click.testing import CliRunner
 
 from restream_io import config
 from restream_io.cli import cli
-from restream_io.schemas import StreamEvent, EventDestination, EventsHistoryResponse, EventsPagination
+from restream_io.schemas import (
+    EventDestination,
+    EventsHistoryResponse,
+    EventsPagination,
+    StreamEvent,
+)
 
 
 def test_stream_event_str_method():
@@ -19,14 +24,12 @@ def test_stream_event_str_method():
     destination1 = EventDestination(
         channelId=123,
         externalUrl="https://twitch.tv/testchannel",
-        streamingPlatformId=1
+        streamingPlatformId=1,
     )
     destination2 = EventDestination(
-        channelId=456,
-        externalUrl=None,
-        streamingPlatformId=2
+        channelId=456, externalUrl=None, streamingPlatformId=2
     )
-    
+
     event_full = StreamEvent(
         id="event123",
         showId="show456",
@@ -37,13 +40,13 @@ def test_stream_event_str_method():
         isRecordOnly=True,
         coverUrl="https://example.com/cover.jpg",
         scheduledFor=1672531200,  # 2023-01-01 00:00:00 UTC
-        startedAt=1672531300,     # 2023-01-01 00:01:40 UTC
-        finishedAt=1672534800,    # 2023-01-01 01:00:00 UTC
-        destinations=[destination1, destination2]
+        startedAt=1672531300,  # 2023-01-01 00:01:40 UTC
+        finishedAt=1672534800,  # 2023-01-01 01:00:00 UTC
+        destinations=[destination1, destination2],
     )
-    
+
     output = str(event_full)
-    
+
     assert "Event: Test Stream Event" in output
     assert "ID: event123" in output
     assert "Status: scheduled" in output
@@ -58,7 +61,7 @@ def test_stream_event_str_method():
     assert "Destinations (2):" in output
     assert "Channel ID: 123" in output
     assert "External URL: https://twitch.tv/testchannel" in output
-    
+
     # Test with minimal fields
     event_minimal = StreamEvent(
         id="event789",
@@ -72,11 +75,11 @@ def test_stream_event_str_method():
         scheduledFor=None,
         startedAt=None,
         finishedAt=None,
-        destinations=[]
+        destinations=[],
     )
-    
+
     output_minimal = str(event_minimal)
-    
+
     assert "Event: Minimal Event" in output_minimal
     assert "Status: live" in output_minimal
     assert "Instant: Yes" in output_minimal
@@ -93,22 +96,20 @@ def test_event_destination_str_method():
     dest_with_url = EventDestination(
         channelId=123,
         externalUrl="https://youtube.com/channel/test",
-        streamingPlatformId=3
+        streamingPlatformId=3,
     )
-    
+
     output = str(dest_with_url)
     assert "Destination:" in output
     assert "Channel ID: 123" in output
     assert "Platform ID: 3" in output
     assert "External URL: https://youtube.com/channel/test" in output
-    
+
     # Test without external URL
     dest_no_url = EventDestination(
-        channelId=456,
-        externalUrl=None,
-        streamingPlatformId=1
+        channelId=456, externalUrl=None, streamingPlatformId=1
     )
-    
+
     output_no_url = str(dest_no_url)
     assert "Channel ID: 456" in output_no_url
     assert "Platform ID: 1" in output_no_url
@@ -117,24 +118,16 @@ def test_event_destination_str_method():
 
 def test_events_pagination_str_method():
     """Test EventsPagination.__str__ method for human-readable output."""
-    pagination = EventsPagination(
-        pages_total=5,
-        page=2,
-        limit=10
-    )
-    
+    pagination = EventsPagination(pages_total=5, page=2, limit=10)
+
     output = str(pagination)
     assert "Page 2 of 5 (showing up to 10 items per page)" == output
 
 
 def test_events_history_response_str_method():
     """Test EventsHistoryResponse.__str__ method for human-readable output."""
-    pagination = EventsPagination(
-        pages_total=3,
-        page=1,
-        limit=2
-    )
-    
+    pagination = EventsPagination(pages_total=3, page=1, limit=2)
+
     event1 = StreamEvent(
         id="event1",
         showId=None,
@@ -147,9 +140,9 @@ def test_events_history_response_str_method():
         scheduledFor=None,
         startedAt=None,
         finishedAt=None,
-        destinations=[]
+        destinations=[],
     )
-    
+
     event2 = StreamEvent(
         id="event2",
         showId=None,
@@ -162,16 +155,13 @@ def test_events_history_response_str_method():
         scheduledFor=None,
         startedAt=None,
         finishedAt=None,
-        destinations=[]
+        destinations=[],
     )
-    
-    response = EventsHistoryResponse(
-        items=[event1, event2],
-        pagination=pagination
-    )
-    
+
+    response = EventsHistoryResponse(items=[event1, event2], pagination=pagination)
+
     output = str(response)
-    
+
     assert "Events History (2 events):" in output
     assert "Page 1 of 3 (showing up to 2 items per page)" in output
     assert "1. Event: Event One" in output
@@ -196,16 +186,12 @@ def test_event_list_command_human_readable_output():
                 "scheduledFor": None,
                 "startedAt": 1672531200,
                 "finishedAt": 1672534800,
-                "destinations": []
+                "destinations": [],
             }
         ],
-        "pagination": {
-            "pages_total": 1,
-            "page": 1,
-            "limit": 10
-        }
+        "pagination": {"pages_total": 1, "page": 1, "limit": 10},
     }
-    
+
     in_progress_data = [
         {
             "id": "event456",
@@ -223,33 +209,33 @@ def test_event_list_command_human_readable_output():
                 {
                     "channelId": 123,
                     "externalUrl": "https://twitch.tv/test",
-                    "streamingPlatformId": 1
+                    "streamingPlatformId": 1,
                 }
-            ]
+            ],
         }
     ]
-    
+
     upcoming_data = []
 
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/events/history?page=1&limit=10", 
-        json=history_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/events/history?page=1&limit=10",
+        json=history_data,
+        status=200,
     )
-    
+
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/events/in-progress", 
-        json=in_progress_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/events/in-progress",
+        json=in_progress_data,
+        status=200,
     )
-    
+
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/events/upcoming", 
-        json=upcoming_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/events/upcoming",
+        json=upcoming_data,
+        status=200,
     )
 
     runner = CliRunner()
@@ -277,29 +263,32 @@ def test_event_list_command_human_readable_output():
 def test_event_list_command_json_output():
     """Test event list command outputs JSON when --json flag is used."""
     # Mock empty responses for simplicity
-    history_data = {"items": [], "pagination": {"pages_total": 0, "page": 1, "limit": 10}}
+    history_data = {
+        "items": [],
+        "pagination": {"pages_total": 0, "page": 1, "limit": 10},
+    }
     in_progress_data = []
     upcoming_data = []
 
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/events/history?page=1&limit=10", 
-        json=history_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/events/history?page=1&limit=10",
+        json=history_data,
+        status=200,
     )
-    
+
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/events/in-progress", 
-        json=in_progress_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/events/in-progress",
+        json=in_progress_data,
+        status=200,
     )
-    
+
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/events/upcoming", 
-        json=upcoming_data, 
-        status=200
+        "GET",
+        "https://api.restream.io/v2/user/events/upcoming",
+        json=upcoming_data,
+        status=200,
     )
 
     runner = CliRunner()

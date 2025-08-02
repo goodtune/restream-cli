@@ -87,13 +87,13 @@ class Channel:
             f"  Service ID: {self.service_id}\n"
             f"  User ID: {self.user_id}"
         )
-        
+
         if self.event_identifier:
             result += f"\n  Event Identifier: {self.event_identifier}"
-        
+
         if self.event_url:
             result += f"\n  Event URL: {self.event_url}"
-            
+
         return result
 
 
@@ -144,12 +144,12 @@ class EventsHistoryResponse:
         """Format events history response for human-readable output."""
         result = f"Events History ({len(self.items)} events):\n"
         result += f"{self.pagination}\n\n"
-        
+
         for i, event in enumerate(self.items, 1):
             result += f"{i}. {event}\n"
             if i < len(self.items):
                 result += "\n"
-        
+
         return result.rstrip()
 
 
@@ -173,7 +173,7 @@ class StreamEvent:
     def __str__(self) -> str:
         """Format stream event for human-readable output."""
         from datetime import datetime
-        
+
         result = (
             f"Event: {self.title}\n"
             f"  ID: {self.id}\n"
@@ -182,29 +182,29 @@ class StreamEvent:
             f"  Instant: {'Yes' if self.isInstant else 'No'}\n"
             f"  Record Only: {'Yes' if self.isRecordOnly else 'No'}"
         )
-        
+
         if self.showId:
             result += f"\n  Show ID: {self.showId}"
-        
+
         if self.scheduledFor:
-            scheduled_time = datetime.fromtimestamp(self.scheduledFor)
+            scheduled_time = datetime.utcfromtimestamp(self.scheduledFor)
             result += f"\n  Scheduled: {scheduled_time.strftime('%Y-%m-%d %H:%M:%S')}"
-        
+
         if self.startedAt:
-            started_time = datetime.fromtimestamp(self.startedAt)
+            started_time = datetime.utcfromtimestamp(self.startedAt)
             result += f"\n  Started: {started_time.strftime('%Y-%m-%d %H:%M:%S')}"
-        
+
         if self.finishedAt:
-            finished_time = datetime.fromtimestamp(self.finishedAt)
+            finished_time = datetime.utcfromtimestamp(self.finishedAt)
             result += f"\n  Finished: {finished_time.strftime('%Y-%m-%d %H:%M:%S')}"
-        
+
         if self.coverUrl:
             result += f"\n  Cover URL: {self.coverUrl}"
-        
+
         # Always show destinations section, even if empty
         result += f"\n  Destinations ({len(self.destinations)}):"
         for dest in self.destinations:
             dest_str = str(dest).replace("\n", "\n  ")
             result += f"\n  {dest_str}"
-        
+
         return result
