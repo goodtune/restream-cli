@@ -16,29 +16,24 @@ from restream_io.cli import profile
 def test_profile_command_human_readable_output():
     """Test profile command displays human-readable output by default."""
     # Mock profile API response
-    profile_data = {
-        "id": 123456,
-        "username": "test_user",
-        "email": "test@example.com"
-    }
-    
+    profile_data = {"id": 123456, "username": "test_user", "email": "test@example.com"}
+
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/profile",
-        json=profile_data,
-        status=200
+        "GET", "https://api.restream.io/v2/user/profile", json=profile_data, status=200
     )
-    
+
     runner = CliRunner()
-    
+
     # Mock config with valid token
     with tempfile.TemporaryDirectory() as tmpdir:
-        config_path = Path(tmpdir) / "test-config"
-        config_path.write_text('{"access_token": "fake-token"}')
-        
+        config_path = Path(tmpdir)
+        tokens_file = config_path / "tokens.json"
+        tokens_file.parent.mkdir(parents=True, exist_ok=True)
+        tokens_file.write_text('{"access_token": "fake-token"}')
+
         with patch.object(config, "CONFIG_PATH", config_path):
             result = runner.invoke(profile, [])
-    
+
     assert result.exit_code == 0
     assert "Profile Information:" in result.output
     assert "ID: 123456" in result.output
@@ -51,30 +46,26 @@ def test_profile_command_human_readable_output():
 @responses.activate
 def test_profile_command_json_output():
     """Test profile command outputs JSON when --json flag is used."""
-    profile_data = {
-        "id": 123456,
-        "username": "test_user",
-        "email": "test@example.com"
-    }
-    
+    profile_data = {"id": 123456, "username": "test_user", "email": "test@example.com"}
+
     responses.add(
-        "GET", 
-        "https://api.restream.io/v2/user/profile",
-        json=profile_data,
-        status=200
+        "GET", "https://api.restream.io/v2/user/profile", json=profile_data, status=200
     )
-    
+
     runner = CliRunner()
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
-        config_path = Path(tmpdir) / "test-config"
-        config_path.write_text('{"access_token": "fake-token"}')
-        
+        config_path = Path(tmpdir)
+        tokens_file = config_path / "tokens.json"
+        tokens_file.parent.mkdir(parents=True, exist_ok=True)
+        tokens_file.write_text('{"access_token": "fake-token"}')
+
         with patch.object(config, "CONFIG_PATH", config_path):
             # Use the main CLI with --json flag
             from restream_io.cli import cli
+
             result = runner.invoke(cli, ["--json", "profile"])
-    
+
     assert result.exit_code == 0
     # Should be valid JSON
     output_data = json.loads(result.output.strip())
@@ -86,14 +77,14 @@ def test_profile_command_json_output():
 def test_profile_command_missing_token():
     """Test profile command handles missing authentication token."""
     runner = CliRunner()
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         config_path = Path(tmpdir) / "test-config"
         # No config file (missing token)
-        
+
         with patch.object(config, "CONFIG_PATH", config_path):
             result = runner.invoke(profile, [])
-    
+
     assert result.exit_code == 1
     assert "Authentication error" in result.output
     assert "Please run 'restream.io login' first" in result.output
@@ -103,20 +94,22 @@ def test_profile_command_missing_token():
 def test_profile_command_expired_token():
     """Test profile command handles expired token."""
     responses.add(
-        "GET", 
+        "GET",
         "https://api.restream.io/v2/user/profile",
         json={"error": "Unauthorized"},
-        status=401
+        status=401,
     )
-    
+
     runner = CliRunner()
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
-        config_path = Path(tmpdir) / "test-config"
-        config_path.write_text('{"access_token": "expired-token"}')
-        
+        config_path = Path(tmpdir)
+        tokens_file = config_path / "tokens.json"
+        tokens_file.parent.mkdir(parents=True, exist_ok=True)
+        tokens_file.write_text('{"access_token": "expired-token"}')
+
         with patch.object(config, "CONFIG_PATH", config_path):
             result = runner.invoke(profile, [])
-    
+
     assert result.exit_code == 1
     assert "API error" in result.output

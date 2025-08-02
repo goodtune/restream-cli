@@ -55,7 +55,9 @@ def _output_result(ctx, data):
     serializable_data = _attrs_to_dict(data)
 
     # Check if --json flag was passed at the root level
-    json_output = ctx.find_root().params.get("json", False)
+    json_output = (
+        ctx.find_root().obj.get("json", False) if ctx.find_root().obj else False
+    )
 
     if json_output:
         click.echo(json.dumps(serializable_data, indent=2, default=str))
@@ -105,7 +107,7 @@ def profile(ctx):
     try:
         client = _get_client()
         profile_data = client.get_profile()
-        _output_result(ctx, profile_data)
+        _output_result(profile_data)
     except APIError as e:
         _handle_api_error(e)
 
@@ -117,7 +119,7 @@ def channel_list(ctx):
     try:
         client = _get_client()
         channels = client.list_channels()
-        _output_result(ctx, channels)
+        _output_result(channels)
     except APIError as e:
         _handle_api_error(e)
 
@@ -130,7 +132,7 @@ def channel_get(ctx, channel_id):
     try:
         client = _get_client()
         channel = client.get_channel(channel_id)
-        _output_result(ctx, channel)
+        _output_result(channel)
     except APIError as e:
         _handle_api_error(e)
 
@@ -142,7 +144,7 @@ def event_list(ctx):
     try:
         client = _get_client()
         events = client.list_events()
-        _output_result(ctx, events)
+        _output_result(events)
     except APIError as e:
         _handle_api_error(e)
 
