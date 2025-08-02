@@ -40,6 +40,19 @@ class ChannelSummary:
     displayName: str
     enabled: bool
 
+    def __str__(self) -> str:
+        """Format channel summary for human-readable output."""
+        status = "Enabled" if self.enabled else "Disabled"
+        return (
+            f"Channel Summary:"
+            f"\n  ID: {self.id}"
+            f"\n  Display Name: {self.displayName}"
+            f"\n  Status: {status}"
+            f"\n  Platform ID: {self.streamingPlatformId}"
+            f"\n  Identifier: {self.identifier}"
+            f"\n  URL: {self.url}"
+        )
+
 
 @attrs.define
 class Channel:
@@ -92,6 +105,17 @@ class EventDestination:
     externalUrl: Optional[str]
     streamingPlatformId: int
 
+    def __str__(self) -> str:
+        """Format event destination for human-readable output."""
+        result = (
+            f"Destination:"
+            f"\n    Channel ID: {self.channelId}"
+            f"\n    Platform ID: {self.streamingPlatformId}"
+        )
+        if self.externalUrl:
+            result += f"\n    External URL: {self.externalUrl}"
+        return result
+
 
 @attrs.define
 class EventsPagination:
@@ -101,6 +125,13 @@ class EventsPagination:
     page: int
     limit: int
 
+    def __str__(self) -> str:
+        """Format pagination for human-readable output."""
+        return (
+            f"Page {self.page} of {self.pages_total} "
+            f"(showing up to {self.limit} items per page)"
+        )
+
 
 @attrs.define
 class EventsHistoryResponse:
@@ -108,6 +139,18 @@ class EventsHistoryResponse:
 
     items: List["StreamEvent"]
     pagination: EventsPagination
+
+    def __str__(self) -> str:
+        """Format events history response for human-readable output."""
+        result = f"Events History ({len(self.items)} events):\n"
+        result += f"{self.pagination}\n\n"
+        
+        for i, event in enumerate(self.items, 1):
+            result += f"{i}. {event}\n"
+            if i < len(self.items):
+                result += "\n"
+        
+        return result.rstrip()
 
 
 @attrs.define
@@ -126,3 +169,42 @@ class StreamEvent:
     startedAt: Optional[int]  # timestamp in seconds or NULL
     finishedAt: Optional[int]  # timestamp in seconds or NULL
     destinations: List[EventDestination]
+
+    def __str__(self) -> str:
+        """Format stream event for human-readable output."""
+        from datetime import datetime
+        
+        result = (
+            f"Event: {self.title}\n"
+            f"  ID: {self.id}\n"
+            f"  Status: {self.status}\n"
+            f"  Description: {self.description}\n"
+            f"  Instant: {'Yes' if self.isInstant else 'No'}\n"
+            f"  Record Only: {'Yes' if self.isRecordOnly else 'No'}"
+        )
+        
+        if self.showId:
+            result += f"\n  Show ID: {self.showId}"
+        
+        if self.scheduledFor:
+            scheduled_time = datetime.fromtimestamp(self.scheduledFor)
+            result += f"\n  Scheduled: {scheduled_time.strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        if self.startedAt:
+            started_time = datetime.fromtimestamp(self.startedAt)
+            result += f"\n  Started: {started_time.strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        if self.finishedAt:
+            finished_time = datetime.fromtimestamp(self.finishedAt)
+            result += f"\n  Finished: {finished_time.strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        if self.coverUrl:
+            result += f"\n  Cover URL: {self.coverUrl}"
+        
+        if self.destinations:
+            result += f"\n  Destinations ({len(self.destinations)}):"
+            for dest in self.destinations:
+                dest_str = str(dest).replace("\n", "\n  ")
+                result += f"\n  {dest_str}"
+        
+        return result
