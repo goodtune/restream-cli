@@ -8,7 +8,7 @@ import click
 from .api import RestreamClient
 from .auth import perform_login
 from .errors import APIError, AuthenticationError
-from .schemas import Profile
+from .schemas import Profile, Channel
 
 
 def _attrs_to_dict(obj):
@@ -25,7 +25,7 @@ def _attrs_to_dict(obj):
 
 def _format_human_readable(data):
     """Format data for human-readable output."""
-    if isinstance(data, Profile):
+    if isinstance(data, (Profile, Channel)):
         click.echo(str(data))
     else:
         # Fallback to JSON for other data types
@@ -134,7 +134,11 @@ def channel_get(ctx, channel_id):
         channel = client.get_channel(channel_id)
         _output_result(channel)
     except APIError as e:
-        _handle_api_error(e)
+        if e.status_code == 404:
+            click.echo(f"Channel not found: {channel_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
 
 
 @click.command("list")
