@@ -13,6 +13,15 @@ class Profile:
     username: str
     email: str
 
+    def __str__(self) -> str:
+        """Format profile for human-readable output."""
+        return (
+            f"Profile Information:\n"
+            f"  ID: {self.id}\n"
+            f"  Username: {self.username}\n"
+            f"  Email: {self.email}"
+        )
+
 
 @attrs.define
 class ChannelSummary:

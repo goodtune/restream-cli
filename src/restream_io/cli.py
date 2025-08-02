@@ -8,6 +8,7 @@ import click
 from .api import RestreamClient
 from .auth import perform_login
 from .errors import APIError, AuthenticationError
+from .schemas import Profile
 
 
 def _attrs_to_dict(obj):
@@ -22,19 +23,28 @@ def _attrs_to_dict(obj):
         return obj
 
 
+def _format_human_readable(data):
+    """Format data for human-readable output."""
+    if isinstance(data, Profile):
+        click.echo(str(data))
+    else:
+        # Fallback to JSON for other data types
+        click.echo(json.dumps(_attrs_to_dict(data), indent=2, default=str))
+
+
 def _get_client():
     """Get a configured RestreamClient instance."""
     try:
         return RestreamClient.from_config()
     except AuthenticationError as e:
-        print(f"Authentication error: {e}", file=sys.stderr)
-        print("Please run 'restream.io login' first.", file=sys.stderr)
+        click.echo(f"Authentication error: {e}", err=True)
+        click.echo("Please run 'restream.io login' first.", err=True)
         sys.exit(1)
 
 
 def _handle_api_error(e: APIError):
     """Handle API errors consistently."""
-    print(f"API error: {e}", file=sys.stderr)
+    click.echo(f"API error: {e}", err=True)
     sys.exit(1)
 
 
@@ -45,20 +55,21 @@ def _output_result(ctx, data):
     serializable_data = _attrs_to_dict(data)
 
     # Check if --json flag was passed at the root level
-    json_output = ctx.find_root().params.get("json", False)
+    json_output = (
+        ctx.find_root().obj.get("json", False) if ctx.find_root().obj else False
+    )
 
     if json_output:
-        print(json.dumps(serializable_data, indent=2, default=str))
+        click.echo(json.dumps(serializable_data, indent=2, default=str))
     else:
-        print(
-            json.dumps(serializable_data, indent=2, default=str)
-        )  # For now, always use JSON format
+        # Format data for human-readable output
+        _format_human_readable(data)
 
 
 @click.command()
 def version_cmd():
     """Show version information."""
-    print(version("restream.io"))
+    click.echo(version("restream.io"))
 
 
 @click.command()
@@ -76,32 +87,34 @@ def login(port):
         if success:
             sys.exit(0)
         else:
-            print("Login failed", file=sys.stderr)
+            click.echo("Login failed", err=True)
             sys.exit(1)
     except AuthenticationError as e:
-        print(f"Login failed: {e}", file=sys.stderr)
+        click.echo(f"Login failed: {e}", err=True)
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\nLogin cancelled by user", file=sys.stderr)
+        click.echo("\nLogin cancelled by user", err=True)
         sys.exit(1)
     except Exception as e:
-        print(f"Unexpected error during login: {e}", file=sys.stderr)
+        click.echo(f"Unexpected error during login: {e}", err=True)
         sys.exit(1)
 
 
 @click.command()
-def profile():
+@click.pass_context
+def profile(ctx):
     """Fetch user profile from Restream API."""
     try:
         client = _get_client()
-        profile = client.get_profile()
-        _output_result(profile)
+        profile_data = client.get_profile()
+        _output_result(profile_data)
     except APIError as e:
         _handle_api_error(e)
 
 
 @click.command("list")
-def channel_list():
+@click.pass_context
+def channel_list(ctx):
     """List channels."""
     try:
         client = _get_client()
@@ -113,7 +126,8 @@ def channel_list():
 
 @click.command("get")
 @click.argument("channel_id", required=True)
-def channel_get(channel_id):
+@click.pass_context
+def channel_get(ctx, channel_id):
     """Get details for a specific channel."""
     try:
         client = _get_client()
@@ -124,7 +138,8 @@ def channel_get(channel_id):
 
 
 @click.command("list")
-def event_list():
+@click.pass_context
+def event_list(ctx):
     """List events."""
     try:
         client = _get_client()
