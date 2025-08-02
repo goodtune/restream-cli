@@ -115,7 +115,7 @@ def test_get_channel():
 def test_get_channel_not_found():
     """Test get channel when channel is not found (404)."""
     token = "fake-token"
-    
+
     responses.add(
         "GET",
         "https://api.restream.io/v2/user/channel/999999",
@@ -125,13 +125,14 @@ def test_get_channel_not_found():
 
     session = requests.Session()
     client = RestreamClient(session, token)
-    
+
     # Should raise APIError with 404 status
     try:
         client.get_channel("999999")
         assert False, "Expected APIError to be raised"
     except Exception as e:
         from restream_io.errors import APIError
+
         assert isinstance(e, APIError)
         assert e.status_code == 404
 
@@ -140,13 +141,13 @@ def test_get_channel_not_found():
 def test_get_channel_malformed_data():
     """Test get channel with malformed response data."""
     token = "fake-token"
-    
+
     # Missing required fields in response
     malformed_data = {
         "id": 123456,
         # Missing required fields like user_id, service_id, etc.
     }
-    
+
     responses.add(
         "GET",
         "https://api.restream.io/v2/user/channel/123456",
@@ -156,7 +157,7 @@ def test_get_channel_malformed_data():
 
     session = requests.Session()
     client = RestreamClient(session, token)
-    
+
     # Should raise an error when trying to create Channel object
     try:
         client.get_channel("123456")
@@ -170,7 +171,7 @@ def test_get_channel_malformed_data():
 def test_get_channel_permission_denied():
     """Test get channel when permission is denied (403)."""
     token = "fake-token"
-    
+
     responses.add(
         "GET",
         "https://api.restream.io/v2/user/channel/123456",
@@ -180,13 +181,14 @@ def test_get_channel_permission_denied():
 
     session = requests.Session()
     client = RestreamClient(session, token)
-    
+
     # Should raise APIError with 403 status
     try:
         client.get_channel("123456")
         assert False, "Expected APIError to be raised"
     except Exception as e:
         from restream_io.errors import APIError
+
         assert isinstance(e, APIError)
         assert e.status_code == 403
 
