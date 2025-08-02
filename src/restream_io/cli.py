@@ -26,10 +26,7 @@ def _attrs_to_dict(obj):
 def _format_human_readable(data):
     """Format data for human-readable output."""
     if isinstance(data, Profile):
-        click.echo(f"Profile Information:")
-        click.echo(f"  ID: {data.id}")
-        click.echo(f"  Username: {data.username}")
-        click.echo(f"  Email: {data.email}")
+        click.echo(str(data))
     else:
         # Fallback to JSON for other data types
         click.echo(json.dumps(_attrs_to_dict(data), indent=2, default=str))
