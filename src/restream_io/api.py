@@ -19,6 +19,7 @@ from .schemas import (
     Profile,
     Server,
     StreamEvent,
+    StreamKey,
 )
 
 DEFAULT_BASE_URL = "https://api.restream.io/v2"
@@ -299,6 +300,24 @@ class RestreamClient:
         data = self._make_request("GET", endpoint)
         return self._convert_events_data(data)
 
+    def get_event(self, event_id: str) -> StreamEvent:
+        """Get details for a specific event.
+
+        Args:
+            event_id: The event ID to retrieve
+
+        Returns:
+            StreamEvent object with full event details
+        """
+        data = self._make_request("GET", f"/user/events/{event_id}")
+
+        # Convert destinations separately since they need nested object conversion
+        destinations = [EventDestination(**dest) for dest in data["destinations"]]
+        # Create a copy of data and replace destinations with converted objects
+        event_data = {**data, "destinations": destinations}
+
+        return StreamEvent(**event_data)
+
     def list_events(self) -> List[StreamEvent]:
         """List all events for the authenticated user.
 
@@ -328,7 +347,9 @@ class RestreamClient:
         # Use direct requests call for public endpoint (no Authorization header)
         response = requests.get(f"{self.base_url}/platform/all", timeout=10)
         if not response.ok:
-            raise APIError(f"Failed to fetch platforms: {response.status_code} {response.text}")
+            raise APIError(
+                f"Failed to fetch platforms: {response.status_code} {response.text}"
+            )
         data = response.json()
 
         # Convert nested image objects
@@ -353,7 +374,9 @@ class RestreamClient:
         # Use direct requests call for public endpoint (no Authorization header)
         response = requests.get(f"{self.base_url}/server/all", timeout=10)
         if not response.ok:
-            raise APIError(f"Failed to fetch servers: {response.status_code} {response.text}")
+            raise APIError(
+                f"Failed to fetch servers: {response.status_code} {response.text}"
+            )
         data = response.json()
         return [Server(**item) for item in data]
 
@@ -396,3 +419,24 @@ class RestreamClient:
 
         # PATCH returns empty body, just check for no errors
         self._make_request("PATCH", f"/user/channel-meta/{channel_id}", json=payload)
+
+    def get_stream_key(self) -> StreamKey:
+        """Get user's primary stream key and SRT URL.
+
+        Returns:
+            StreamKey object with stream key and SRT URL
+        """
+        data = self._make_request("GET", "/user/streamKey")
+        return StreamKey(**data)
+
+    def get_event_stream_key(self, event_id: str) -> StreamKey:
+        """Get stream key and SRT URL for a specific event.
+
+        Args:
+            event_id: The event ID to get stream key for
+
+        Returns:
+            StreamKey object with stream key and SRT URL
+        """
+        data = self._make_request("GET", f"/user/events/{event_id}/streamKey")
+        return StreamKey(**data)

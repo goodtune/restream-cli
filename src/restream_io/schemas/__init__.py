@@ -11,6 +11,7 @@ from .PlatformImage import PlatformImage
 from .Profile import Profile
 from .Server import Server
 from .StreamEvent import StreamEvent
+from .StreamKey import StreamKey
 
 __all__ = [
     "Channel",
@@ -24,4 +25,5 @@ __all__ = [
     "Profile",
     "Server",
     "StreamEvent",
+    "StreamKey",
 ]
