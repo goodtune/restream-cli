@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sys
 from importlib.metadata import version
@@ -12,13 +13,16 @@ from .schemas import (
     Channel,
     ChannelMeta,
     ChannelSummary,
+    ChatEvent,
     EventsHistoryResponse,
     Platform,
     Profile,
     Server,
     StreamEvent,
+    StreamingEvent,
     StreamKey,
 )
+from .websocket import ChatMonitorClient, StreamingMonitorClient
 
 
 class RestreamCommand(click.Command):
@@ -69,13 +73,17 @@ def _format_human_readable(data):
             Platform,
             Server,
             StreamKey,
+            StreamingEvent,
+            ChatEvent,
         ),
     ):
         click.echo(str(data))
     elif (
         isinstance(data, list)
         and data
-        and isinstance(data[0], (StreamEvent, ChannelSummary, Platform, Server))
+        and isinstance(
+            data[0], (StreamEvent, ChannelSummary, Platform, Server, StreamingEvent, ChatEvent)
+        )
     ):
         # Handle lists of events or channel summaries
         for i, item in enumerate(data, 1):
@@ -367,6 +375,72 @@ def stream_key():
     pass
 
 
+@click.command("streaming", cls=RestreamCommand)
+@click.option(
+    "--duration",
+    type=int,
+    help="Duration in seconds to monitor (default: run indefinitely)",
+)
+def monitor_streaming(duration, json):
+    """Monitor real-time streaming metrics."""
+    
+    def handle_streaming_message(data):
+        """Handle incoming streaming event messages."""
+        try:
+            event = StreamingEvent.from_websocket_message(data)
+            if json:
+                click.echo(json.dumps(_attrs_to_dict(event), indent=2, default=str))
+            else:
+                click.echo(event)
+        except Exception as e:
+            click.echo(f"Error processing streaming event: {e}", err=True)
+    
+    try:
+        client = StreamingMonitorClient(duration=duration)
+        asyncio.run(client.listen(handle_streaming_message))
+    except KeyboardInterrupt:
+        click.echo("\nMonitoring stopped by user")
+    except Exception as e:
+        click.echo(f"Error during streaming monitoring: {e}", err=True)
+        sys.exit(1)
+
+
+@click.command("chat", cls=RestreamCommand)
+@click.option(
+    "--duration",
+    type=int,
+    help="Duration in seconds to monitor (default: run indefinitely)",
+)
+def monitor_chat(duration, json):
+    """Monitor real-time chat events."""
+    
+    def handle_chat_message(data):
+        """Handle incoming chat event messages."""
+        try:
+            event = ChatEvent.from_websocket_message(data)
+            if json:
+                click.echo(json.dumps(_attrs_to_dict(event), indent=2, default=str))
+            else:
+                click.echo(event)
+        except Exception as e:
+            click.echo(f"Error processing chat event: {e}", err=True)
+    
+    try:
+        client = ChatMonitorClient(duration=duration)
+        asyncio.run(client.listen(handle_chat_message))
+    except KeyboardInterrupt:
+        click.echo("\nMonitoring stopped by user")
+    except Exception as e:
+        click.echo(f"Error during chat monitoring: {e}", err=True)
+        sys.exit(1)
+
+
+@click.group()
+def monitor():
+    """Real-time monitoring commands."""
+    pass
+
+
 # Add commands to groups
 channel.add_command(channel_list)
 channel.add_command(channel_get)
@@ -381,6 +455,8 @@ event.add_command(event_upcoming)
 event.add_command(event_history)
 event.add_command(event_stream_key)
 stream_key.add_command(stream_key_get)
+monitor.add_command(monitor_streaming)
+monitor.add_command(monitor_chat)
 
 # Add commands to main CLI
 cli.add_command(login)
@@ -390,6 +466,7 @@ cli.add_command(servers)
 cli.add_command(channel)
 cli.add_command(event)
 cli.add_command(stream_key)
+cli.add_command(monitor)
 cli.add_command(version_cmd, name="version")
 
 

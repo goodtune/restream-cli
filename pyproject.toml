@@ -16,6 +16,7 @@ dependencies = [
   "attrs>=25.3.0",
   "click>=8.2.1",
   "requests>=2.32.4",
+  "websockets>=14.1",
 ]
 scripts = { "restream.io" = "restream_io.cli:main" }
 

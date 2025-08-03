@@ -2,6 +2,7 @@ import base64
 import hashlib
 import secrets
 import socket
+import time
 import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -10,7 +11,7 @@ from typing import Optional, Tuple
 
 import requests
 
-from .config import get_client_id, get_client_secret, save_tokens
+from .config import get_client_id, get_client_secret, load_tokens, save_tokens
 from .errors import AuthenticationError
 
 
@@ -317,3 +318,83 @@ def perform_login(
         raise
     except Exception as e:
         raise AuthenticationError(f"Unexpected error during login: {e}")
+
+
+def get_access_token() -> Optional[str]:
+    """Get a valid access token, refreshing if necessary.
+    
+    Returns:
+        Valid access token or None if no tokens available
+        
+    Raises:
+        AuthenticationError: If token refresh fails
+    """
+    tokens = load_tokens()
+    if not tokens:
+        return None
+    
+    access_token = tokens.get("access_token")
+    if not access_token:
+        return None
+    
+    # Check if token is expired and refresh if needed
+    expires_at = tokens.get("expires_at")
+    if expires_at and time.time() >= expires_at:
+        refresh_token = tokens.get("refresh_token")
+        if refresh_token:
+            access_token = _refresh_token(refresh_token)
+        else:
+            return None
+    
+    return access_token
+
+
+def _refresh_token(refresh_token: str) -> str:
+    """Refresh access token using refresh token.
+    
+    Args:
+        refresh_token: The refresh token
+        
+    Returns:
+        New access token
+        
+    Raises:
+        AuthenticationError: If token refresh fails
+    """
+    client_id = get_client_id()
+    client_secret = get_client_secret()
+    
+    if not client_id:
+        raise AuthenticationError("RESTREAM_CLIENT_ID environment variable not set")
+    
+    token_data = {
+        "grant_type": "refresh_token",
+        "client_id": client_id,
+        "refresh_token": refresh_token,
+    }
+    
+    if client_secret:
+        token_data["client_secret"] = client_secret
+    
+    token_url = "https://api.restream.io/oauth/token"
+    
+    try:
+        response = requests.post(
+            token_url,
+            data=token_data,
+            headers={"Accept": "application/json"},
+            timeout=30,
+        )
+        
+        if not response.ok:
+            raise AuthenticationError(f"Token refresh failed: {response.status_code}")
+        
+        token_response = response.json()
+        
+        # Save the new tokens
+        save_tokens(token_response)
+        
+        return token_response["access_token"]
+        
+    except requests.RequestException as e:
+        raise AuthenticationError(f"Network error during token refresh: {e}")
