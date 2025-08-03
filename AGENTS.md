@@ -27,11 +27,16 @@ Build and evolve a Python CLI named `restream.io` to interact with the Restream.
 
 ## CLI conventions
 - Use the standard library (`argparse`) for argument parsing to minimize dependencies unless a justified migration to richer CLI frameworks (like `click`/`typer`) is proposed.  
-- Command hierarchy:  
+- Command hierarchy:
+  - `restream.io platforms` - public API endpoint does not require authentication.
+  - `restream.io servers` - public API endpoint does not require authentication.
   - `restream.io login`  
   - `restream.io profile`  
   - `restream.io channel list`  
-  - `restream.io channel get <id>`  
+  - `restream.io channel get <id>`
+  - `restream.io channel set <id>`
+  - `restream.io channel meta get`
+  - `restream.io channel meta set`
   - `restream.io event list`  
   - `restream.io version`  
 - Support `--json` for machine-readable output.  
