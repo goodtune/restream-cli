@@ -419,6 +419,7 @@ def monitor_chat(duration, json):
     def handle_chat_message(data):
         """Handle incoming chat event messages."""
         try:
+
             event = ChatEvent.from_websocket_message(data)
             if json:
                 click.echo(json_lib.dumps(_attrs_to_dict(event), indent=2, default=str))

@@ -63,41 +63,76 @@ class ChatEvent:
         Returns:
             ChatEvent instance
         """
-        # Extract user information if present
+        # Extract user information if present in payload
         user = None
-        if "user" in data:
-            user_data = data["user"]
+        payload = data.get("payload", {})
+
+        # Check for user in different locations based on action type
+        if "user" in payload:
+            user_data = payload["user"]
             user = ChatUser(
                 id=user_data.get("id"),
                 username=user_data.get("username"),
-                display_name=user_data.get("display_name"),
-                platform=user_data.get("platform"),
+                display_name=user_data.get("displayName") or user_data.get("name"),
+                platform=None,  # Will be determined from connection
                 is_moderator=user_data.get("is_moderator"),
                 is_subscriber=user_data.get("is_subscriber"),
                 badges=user_data.get("badges", []),
             )
+        elif "target" in payload and "owner" in payload["target"]:
+            # For connection_info events, user info is in target.owner
+            owner_data = payload["target"]["owner"]
+            user = ChatUser(
+                id=owner_data.get("id"),
+                username=owner_data.get("displayName"),
+                display_name=owner_data.get("displayName"),
+                platform=None,  # Will be determined from connection
+                is_moderator=False,
+                is_subscriber=False,
+                badges=[],
+            )
 
         # Extract message content if present
         message = None
-        if "message" in data:
-            message_data = data["message"]
-            if isinstance(message_data, str):
-                message = ChatMessage(text=message_data)
-            elif isinstance(message_data, dict):
-                message = ChatMessage(
-                    text=message_data.get("text"),
-                    emotes=message_data.get("emotes", []),
-                    mentions=message_data.get("mentions", []),
-                )
+        if "text" in payload:
+            message = ChatMessage(
+                text=payload.get("text"),
+                emotes=payload.get("emotes", []),
+                mentions=payload.get("mentions", []),
+            )
+
+        # Determine channel info and platform
+        channel_id = None
+        platform = None
+        if "target" in payload:
+            target = payload["target"]
+            channel_id = (
+                str(target.get("websiteChannelId"))
+                if target.get("websiteChannelId")
+                else None
+            )
+
+        # Determine platform from connection identifier
+        connection_id = payload.get("connectionIdentifier", "")
+        if "youtube" in connection_id:
+            platform = "youtube"
+        elif "facebook" in connection_id:
+            platform = "facebook"
+        elif "linkedin" in connection_id:
+            platform = "linkedin"
+
+        # Update user platform if we have a user
+        if user:
+            user.platform = platform
 
         return cls(
-            event_type=data.get("type", "unknown"),
-            timestamp=data.get("timestamp", ""),
-            channel_id=data.get("channel_id"),
+            event_type=data.get("action", "unknown"),
+            timestamp=str(data.get("timestamp", "")),
+            channel_id=channel_id,
             user=user,
             message=message,
-            platform=data.get("platform"),
-            event_id=data.get("event_id"),
+            platform=platform,
+            event_id=payload.get("connectionIdentifier"),
             raw_data=data,
         )
 
