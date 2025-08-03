@@ -31,10 +31,10 @@ class RestreamCommand(click.Command):
             click.Option(["--json"], is_flag=True, help="Output results in JSON format")
         )
 
-    def invoke(self, ctx):
+    def invoke(self, ctx, *args, **kwargs):
         """Override invoke to handle common error patterns."""
         try:
-            return super().invoke(ctx)
+            return super().invoke(ctx, *args, **kwargs)
         except APIError as e:
             _handle_api_error(e)
         except AuthenticationError as e:
