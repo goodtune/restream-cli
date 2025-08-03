@@ -140,7 +140,7 @@ def profile(ctx):
     try:
         client = _get_client()
         profile_data = client.get_profile()
-        _output_result(profile_data)
+        _output_result(ctx, profile_data)
     except APIError as e:
         _handle_api_error(e)
 
@@ -152,7 +152,7 @@ def channel_list(ctx):
     try:
         client = _get_client()
         channels = client.list_channels()
-        _output_result(channels)
+        _output_result(ctx, channels)
     except APIError as e:
         _handle_api_error(e)
 
@@ -165,7 +165,7 @@ def channel_get(ctx, channel_id):
     try:
         client = _get_client()
         channel = client.get_channel(channel_id)
-        _output_result(channel)
+        _output_result(ctx, channel)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Channel not found: {channel_id}", err=True)
@@ -181,7 +181,7 @@ def event_list(ctx):
     try:
         client = _get_client()
         events = client.list_events()
-        _output_result(events)
+        _output_result(ctx, events)
     except APIError as e:
         _handle_api_error(e)
 
@@ -194,7 +194,7 @@ def event_get(ctx, event_id):
     try:
         client = _get_client()
         event = client.get_event(event_id)
-        _output_result(event)
+        _output_result(ctx, event)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Event not found: {event_id}", err=True)
@@ -210,7 +210,7 @@ def event_in_progress(ctx):
     try:
         client = _get_client()
         events = client.list_events_in_progress()
-        _output_result(events)
+        _output_result(ctx, events)
     except APIError as e:
         _handle_api_error(e)
 
@@ -228,7 +228,7 @@ def event_upcoming(ctx, source, scheduled):
         events = client.list_events_upcoming(
             source=source, scheduled=scheduled if scheduled else None
         )
-        _output_result(events)
+        _output_result(ctx, events)
     except APIError as e:
         _handle_api_error(e)
 
@@ -244,7 +244,7 @@ def event_history(ctx, page, limit):
     try:
         client = _get_client()
         response = client.list_events_history(page=page, limit=limit)
-        _output_result(response)
+        _output_result(ctx, response)
     except APIError as e:
         _handle_api_error(e)
 
@@ -256,7 +256,7 @@ def stream_key_get(ctx):
     try:
         client = _get_client()
         stream_key = client.get_stream_key()
-        _output_result(stream_key)
+        _output_result(ctx, stream_key)
     except APIError as e:
         _handle_api_error(e)
 
@@ -269,7 +269,7 @@ def event_stream_key(ctx, event_id):
     try:
         client = _get_client()
         stream_key = client.get_event_stream_key(event_id)
-        _output_result(stream_key)
+        _output_result(ctx, stream_key)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Event not found: {event_id}", err=True)
@@ -285,7 +285,7 @@ def platforms(ctx):
     try:
         client = _get_client()
         platforms_data = client.get_platforms()
-        _output_result(platforms_data)
+        _output_result(ctx, platforms_data)
     except APIError as e:
         _handle_api_error(e)
 
@@ -297,7 +297,7 @@ def servers(ctx):
     try:
         client = _get_client()
         servers_data = client.get_servers()
-        _output_result(servers_data)
+        _output_result(ctx, servers_data)
     except APIError as e:
         _handle_api_error(e)
 
@@ -333,7 +333,7 @@ def channel_meta_get(ctx, channel_id):
     try:
         client = _get_client()
         meta = client.get_channel_meta(channel_id)
-        _output_result(meta)
+        _output_result(ctx, meta)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Channel not found: {channel_id}", err=True)
