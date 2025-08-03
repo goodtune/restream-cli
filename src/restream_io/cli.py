@@ -17,6 +17,7 @@ from .schemas import (
     Profile,
     Server,
     StreamEvent,
+    StreamKey,
 )
 
 
@@ -45,6 +46,7 @@ def _format_human_readable(data):
             EventsHistoryResponse,
             Platform,
             Server,
+            StreamKey,
         ),
     ):
         click.echo(str(data))
@@ -184,6 +186,98 @@ def event_list(ctx):
         _handle_api_error(e)
 
 
+@click.command("get")
+@click.argument("event_id", required=True)
+@click.pass_context
+def event_get(ctx, event_id):
+    """Get details for a specific event."""
+    try:
+        client = _get_client()
+        event = client.get_event(event_id)
+        _output_result(event)
+    except APIError as e:
+        if e.status_code == 404:
+            click.echo(f"Event not found: {event_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
+
+
+@click.command("in-progress")
+@click.pass_context
+def event_in_progress(ctx):
+    """List currently in-progress events."""
+    try:
+        client = _get_client()
+        events = client.list_events_in_progress()
+        _output_result(events)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+@click.command("upcoming")
+@click.option(
+    "--source", type=int, help="Filter by source type (1=Studio, 2=Encoder, 3=Video)"
+)
+@click.option("--scheduled", is_flag=True, help="Show only scheduled events")
+@click.pass_context
+def event_upcoming(ctx, source, scheduled):
+    """List upcoming events."""
+    try:
+        client = _get_client()
+        events = client.list_events_upcoming(
+            source=source, scheduled=scheduled if scheduled else None
+        )
+        _output_result(events)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+@click.command("history")
+@click.option("--page", type=int, default=1, help="Page number (default: 1)")
+@click.option(
+    "--limit", type=int, default=10, help="Number of events per page (default: 10)"
+)
+@click.pass_context
+def event_history(ctx, page, limit):
+    """List historical events."""
+    try:
+        client = _get_client()
+        response = client.list_events_history(page=page, limit=limit)
+        _output_result(response)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+@click.command("get")
+@click.pass_context
+def stream_key_get(ctx):
+    """Get user's primary stream key."""
+    try:
+        client = _get_client()
+        stream_key = client.get_stream_key()
+        _output_result(stream_key)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+@click.command("stream-key")
+@click.argument("event_id", required=True)
+@click.pass_context
+def event_stream_key(ctx, event_id):
+    """Get stream key for a specific event."""
+    try:
+        client = _get_client()
+        stream_key = client.get_event_stream_key(event_id)
+        _output_result(stream_key)
+    except APIError as e:
+        if e.status_code == 404:
+            click.echo(f"Event not found: {event_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
+
+
 @click.command()
 @click.pass_context
 def platforms(ctx):
@@ -294,6 +388,12 @@ def event():
     pass
 
 
+@click.group()
+def stream_key():
+    """Stream key management commands."""
+    pass
+
+
 # Add commands to groups
 channel.add_command(channel_list)
 channel.add_command(channel_get)
@@ -302,6 +402,12 @@ channel_meta.add_command(channel_meta_get)
 channel_meta.add_command(channel_meta_set)
 channel.add_command(channel_meta, name="meta")
 event.add_command(event_list)
+event.add_command(event_get)
+event.add_command(event_in_progress)
+event.add_command(event_upcoming)
+event.add_command(event_history)
+event.add_command(event_stream_key)
+stream_key.add_command(stream_key_get)
 
 # Add commands to main CLI
 cli.add_command(login)
@@ -310,6 +416,7 @@ cli.add_command(platforms)
 cli.add_command(servers)
 cli.add_command(channel)
 cli.add_command(event)
+cli.add_command(stream_key)
 cli.add_command(version_cmd, name="version")
 
 

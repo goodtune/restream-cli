@@ -56,7 +56,16 @@ Build and evolve a Python CLI named `restream.io` to interact with the Restream.
 - Mock all external HTTP calls using `responses`.  
 - Provide fixtures for repeated patterns (tokens, sample API payloads).  
 - Cover positive, negative, and edge cases.  
-- Ensure version command can be tested in both installed and source environments.  
+- Ensure version command can be tested in both installed and source environments.
+
+## API Schema Development
+- **Never trust documented response types** - the official API documentation may not accurately reflect actual response structures.
+- **Always validate actual API responses** before creating schemas for GET endpoints:
+  1. First implement a minimal API call to fetch real response data
+  2. Examine the actual JSON structure returned by the API
+  3. Create `@attrs.define` schemas based on the real response format
+  4. Handle missing or additional fields gracefully
+- Only implement features available to all plan types; skip Business/Enterprise-only features unless explicitly required.  
 
 ## Style & quality
 - Follow PEP 8; functions should be small and focused.  
