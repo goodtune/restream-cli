@@ -15,6 +15,8 @@ Build and evolve a Python CLI named `restream.io` to interact with the Restream.
 ## Dependencies
 - Must use `requests` for all HTTP interactions.  
 - Instantiate and reuse a single `requests.Session` per invocation to benefit from connection pooling and consistent headers.  
+- Use `click` for CLI framework to provide better user experience and maintainability over `argparse`.
+- Use `attrs` for data classes and schema definitions to ensure type safety and clean serialization.
 - Use `responses` in test suites to mock HTTP endpoints; **no real network calls** in unit tests.  
 
 ## Authentication
@@ -26,7 +28,7 @@ Build and evolve a Python CLI named `restream.io` to interact with the Restream.
 - Before each API request, validate token expiry and use refresh token when necessary to obtain a new access token.  
 
 ## CLI conventions
-- Use the standard library (`argparse`) for argument parsing to minimize dependencies unless a justified migration to richer CLI frameworks (like `click`/`typer`) is proposed.  
+- Use `click` for command-line interface to provide rich features, better error handling, and improved user experience.
 - Command hierarchy:
   - `restream.io platforms` - public API endpoint does not require authentication.
   - `restream.io servers` - public API endpoint does not require authentication.
@@ -80,11 +82,9 @@ Build and evolve a Python CLI named `restream.io` to interact with the Restream.
 - Ensure CI fetches tags so `setuptools_scm` can compute version.  
 
 ## Developer workflow
-1. Bootstrap: `uv init && uv add requests responses pytest setuptools_scm && uv sync`.  
-2. (Optional) Install editable: `uv run python -m pip install -e .`.  
-3. Run tests: `uv run pytest`.  
-4. Add new command: extend `restream_io/api.py` + CLI + tests.  
-5. Commit, tag, push.  
+1. Add new command: extend `restream_io/api.py` + CLI + tests.  
+2. Run linting: `uv run isort . && uv run black . && uv run ruff check .`
+3. Commit, tag, push.  
 
 ## Local development fallbacks
 - If `importlib.metadata.version` fails because the package isn’t installed, use `setuptools_scm.get_version` with `relative_to=__file__` to compute version from git state.  
