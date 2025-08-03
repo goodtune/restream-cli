@@ -325,26 +325,22 @@ class RestreamClient:
         Returns:
             List of Platform objects
         """
-        # Remove Authorization header for public endpoint
-        original_headers = self.session.headers.copy()
-        self.session.headers.pop("Authorization", None)
+        # Use direct requests call for public endpoint (no Authorization header)
+        response = requests.get(f"{self.base_url}/platform/all", timeout=10)
+        if not response.ok:
+            raise APIError(f"Failed to fetch platforms: {response.status_code} {response.text}")
+        data = response.json()
 
-        try:
-            data = self._make_request("GET", "/platform/all")
+        # Convert nested image objects
+        platforms = []
+        for item in data:
+            # Convert image and altImage to PlatformImage objects
+            image = PlatformImage(**item["image"])
+            alt_image = PlatformImage(**item["altImage"])
+            platform_data = {**item, "image": image, "altImage": alt_image}
+            platforms.append(Platform(**platform_data))
 
-            # Convert nested image objects
-            platforms = []
-            for item in data:
-                # Convert image and altImage to PlatformImage objects
-                image = PlatformImage(**item["image"])
-                alt_image = PlatformImage(**item["altImage"])
-                platform_data = {**item, "image": image, "altImage": alt_image}
-                platforms.append(Platform(**platform_data))
-
-            return platforms
-        finally:
-            # Restore original headers
-            self.session.headers = original_headers
+        return platforms
 
     def get_servers(self) -> List[Server]:
         """Get all available ingest servers.
@@ -354,16 +350,12 @@ class RestreamClient:
         Returns:
             List of Server objects
         """
-        # Remove Authorization header for public endpoint
-        original_headers = self.session.headers.copy()
-        self.session.headers.pop("Authorization", None)
-
-        try:
-            data = self._make_request("GET", "/server/all")
-            return [Server(**item) for item in data]
-        finally:
-            # Restore original headers
-            self.session.headers = original_headers
+        # Use direct requests call for public endpoint (no Authorization header)
+        response = requests.get(f"{self.base_url}/server/all", timeout=10)
+        if not response.ok:
+            raise APIError(f"Failed to fetch servers: {response.status_code} {response.text}")
+        data = response.json()
+        return [Server(**item) for item in data]
 
     def get_channel_meta(self, channel_id: str) -> ChannelMeta:
         """Get channel metadata for a specific channel.
