@@ -1,5 +1,5 @@
 import asyncio
-import json
+import json as json_lib
 import sys
 from importlib.metadata import version
 
@@ -82,7 +82,8 @@ def _format_human_readable(data):
         isinstance(data, list)
         and data
         and isinstance(
-            data[0], (StreamEvent, ChannelSummary, Platform, Server, StreamingEvent, ChatEvent)
+            data[0],
+            (StreamEvent, ChannelSummary, Platform, Server, StreamingEvent, ChatEvent),
         )
     ):
         # Handle lists of events or channel summaries
@@ -92,7 +93,7 @@ def _format_human_readable(data):
                 click.echo()
     else:
         # Fallback to JSON for other data types
-        click.echo(json.dumps(_attrs_to_dict(data), indent=2, default=str))
+        click.echo(json_lib.dumps(_attrs_to_dict(data), indent=2, default=str))
 
 
 def _get_client():
@@ -117,7 +118,7 @@ def _output_result(data, json_output: bool):
     serializable_data = _attrs_to_dict(data)
 
     if json_output:
-        click.echo(json.dumps(serializable_data, indent=2, default=str))
+        click.echo(json_lib.dumps(serializable_data, indent=2, default=str))
     else:
         # Format data for human-readable output
         _format_human_readable(data)
@@ -383,18 +384,19 @@ def stream_key():
 )
 def monitor_streaming(duration, json):
     """Monitor real-time streaming metrics."""
-    
+
     def handle_streaming_message(data):
         """Handle incoming streaming event messages."""
         try:
+
             event = StreamingEvent.from_websocket_message(data)
             if json:
-                click.echo(json.dumps(_attrs_to_dict(event), indent=2, default=str))
+                click.echo(json_lib.dumps(_attrs_to_dict(event), indent=2, default=str))
             else:
                 click.echo(event)
         except Exception as e:
             click.echo(f"Error processing streaming event: {e}", err=True)
-    
+
     try:
         client = StreamingMonitorClient(duration=duration)
         asyncio.run(client.listen(handle_streaming_message))
@@ -413,18 +415,18 @@ def monitor_streaming(duration, json):
 )
 def monitor_chat(duration, json):
     """Monitor real-time chat events."""
-    
+
     def handle_chat_message(data):
         """Handle incoming chat event messages."""
         try:
             event = ChatEvent.from_websocket_message(data)
             if json:
-                click.echo(json.dumps(_attrs_to_dict(event), indent=2, default=str))
+                click.echo(json_lib.dumps(_attrs_to_dict(event), indent=2, default=str))
             else:
                 click.echo(event)
         except Exception as e:
             click.echo(f"Error processing chat event: {e}", err=True)
-    
+
     try:
         client = ChatMonitorClient(duration=duration)
         asyncio.run(client.listen(handle_chat_message))

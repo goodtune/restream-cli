@@ -13,7 +13,6 @@ from websockets.exceptions import ConnectionClosed, WebSocketException
 from .auth import get_access_token
 from .errors import AuthenticationError
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +21,7 @@ class WebSocketClient:
 
     def __init__(self, uri: str, duration: Optional[int] = None):
         """Initialize WebSocket client.
-        
+
         Args:
             uri: WebSocket URI to connect to
             duration: Optional duration in seconds to monitor (None for indefinite)
@@ -39,17 +38,17 @@ class WebSocketClient:
             access_token = get_access_token()
             if not access_token:
                 raise AuthenticationError("No valid access token available")
-            
-            headers = {"Authorization": f"Bearer {access_token}"}
-            
+
+            # Add access token as query parameter as per official docs
+            uri_with_token = f"{self.uri}?accessToken={access_token}"
+
             self.websocket = await websockets.connect(
-                self.uri,
-                extra_headers=headers,
+                uri_with_token,
                 ping_interval=30,
                 ping_timeout=10,
             )
             logger.info(f"Connected to {self.uri}")
-            
+
         except Exception as e:
             logger.error(f"Failed to connect to {self.uri}: {e}")
             raise
@@ -63,12 +62,12 @@ class WebSocketClient:
 
     async def listen(self, message_handler: Callable[[dict], None]) -> None:
         """Listen for messages and handle them.
-        
+
         Args:
             message_handler: Callback function to handle received messages
         """
         self._running = True
-        
+
         # Set up signal handlers for graceful shutdown
         if sys.platform != "win32":
             loop = asyncio.get_running_loop()
@@ -81,11 +80,11 @@ class WebSocketClient:
                 asyncio.create_task(self._duration_timeout())
 
             await self.connect()
-            
+
             async for message in self._message_stream():
                 if not self._running:
                     break
-                    
+
                 try:
                     data = json.loads(message)
                     message_handler(data)
@@ -113,7 +112,7 @@ class WebSocketClient:
 
         while self._running and retry_count < max_retries:
             try:
-                if not self.websocket or self.websocket.closed:
+                if not self.websocket:
                     await self.connect()
                     retry_count = 0  # Reset retry count on successful connection
 
@@ -123,7 +122,9 @@ class WebSocketClient:
                     yield message
 
             except ConnectionClosed:
-                logger.warning("WebSocket connection closed, attempting to reconnect...")
+                logger.warning(
+                    "WebSocket connection closed, attempting to reconnect..."
+                )
                 retry_count += 1
                 if retry_count < max_retries:
                     delay = base_delay * (2 ** (retry_count - 1))
@@ -132,7 +133,7 @@ class WebSocketClient:
                 else:
                     logger.error("Max retries exceeded, giving up")
                     break
-                    
+
             except WebSocketException as e:
                 logger.error(f"WebSocket error: {e}")
                 break
@@ -159,7 +160,7 @@ class StreamingMonitorClient(WebSocketClient):
 
     def __init__(self, duration: Optional[int] = None):
         """Initialize streaming monitor client.
-        
+
         Args:
             duration: Optional duration in seconds to monitor
         """
@@ -171,7 +172,7 @@ class ChatMonitorClient(WebSocketClient):
 
     def __init__(self, duration: Optional[int] = None):
         """Initialize chat monitor client.
-        
+
         Args:
             duration: Optional duration in seconds to monitor
         """
