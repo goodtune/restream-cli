@@ -10,9 +10,12 @@ from .auth import perform_login
 from .errors import APIError, AuthenticationError
 from .schemas import (
     Channel,
+    ChannelMeta,
     ChannelSummary,
     EventsHistoryResponse,
+    Platform,
     Profile,
+    Server,
     StreamEvent,
 )
 
@@ -32,13 +35,23 @@ def _attrs_to_dict(obj):
 def _format_human_readable(data):
     """Format data for human-readable output."""
     if isinstance(
-        data, (Profile, Channel, ChannelSummary, StreamEvent, EventsHistoryResponse)
+        data,
+        (
+            Profile,
+            Channel,
+            ChannelSummary,
+            ChannelMeta,
+            StreamEvent,
+            EventsHistoryResponse,
+            Platform,
+            Server,
+        ),
     ):
         click.echo(str(data))
     elif (
         isinstance(data, list)
         and data
-        and isinstance(data[0], (StreamEvent, ChannelSummary))
+        and isinstance(data[0], (StreamEvent, ChannelSummary, Platform, Server))
     ):
         # Handle lists of events or channel summaries
         for i, item in enumerate(data, 1):
@@ -171,6 +184,95 @@ def event_list(ctx):
         _handle_api_error(e)
 
 
+@click.command()
+@click.pass_context
+def platforms(ctx):
+    """List all available streaming platforms."""
+    try:
+        client = _get_client()
+        platforms_data = client.get_platforms()
+        _output_result(platforms_data)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+@click.command()
+@click.pass_context
+def servers(ctx):
+    """List all available ingest servers."""
+    try:
+        client = _get_client()
+        servers_data = client.get_servers()
+        _output_result(servers_data)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+@click.command("set")
+@click.argument("channel_id", required=True)
+@click.option("--active/--inactive", default=None, help="Enable or disable the channel")
+@click.pass_context
+def channel_set(ctx, channel_id, active):
+    """Update channel settings."""
+    if active is None:
+        click.echo("Please specify --active or --inactive", err=True)
+        sys.exit(1)
+
+    try:
+        client = _get_client()
+        client.update_channel(channel_id, active)
+        status = "enabled" if active else "disabled"
+        click.echo(f"Channel {channel_id} {status} successfully")
+    except APIError as e:
+        if e.status_code == 404:
+            click.echo(f"Channel not found: {channel_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
+
+
+@click.command("get")
+@click.argument("channel_id", required=True)
+@click.pass_context
+def channel_meta_get(ctx, channel_id):
+    """Get channel metadata."""
+    try:
+        client = _get_client()
+        meta = client.get_channel_meta(channel_id)
+        _output_result(meta)
+    except APIError as e:
+        if e.status_code == 404:
+            click.echo(f"Channel not found: {channel_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
+
+
+@click.command("set")
+@click.argument("channel_id", required=True)
+@click.option("--title", required=True, help="Channel title")
+@click.option("--description", help="Channel description")
+@click.pass_context
+def channel_meta_set(ctx, channel_id, title, description):
+    """Update channel metadata."""
+    try:
+        client = _get_client()
+        client.update_channel_meta(channel_id, title, description)
+        click.echo(f"Channel {channel_id} metadata updated successfully")
+    except APIError as e:
+        if e.status_code == 404:
+            click.echo(f"Channel not found: {channel_id}", err=True)
+            sys.exit(1)
+        else:
+            _handle_api_error(e)
+
+
+@click.group()
+def channel_meta():
+    """Channel metadata management commands."""
+    pass
+
+
 @click.group()
 @click.option("--json", is_flag=True, help="Output results in JSON format")
 @click.pass_context
@@ -195,11 +297,17 @@ def event():
 # Add commands to groups
 channel.add_command(channel_list)
 channel.add_command(channel_get)
+channel.add_command(channel_set)
+channel_meta.add_command(channel_meta_get)
+channel_meta.add_command(channel_meta_set)
+channel.add_command(channel_meta, name="meta")
 event.add_command(event_list)
 
 # Add commands to main CLI
 cli.add_command(login)
 cli.add_command(profile)
+cli.add_command(platforms)
+cli.add_command(servers)
 cli.add_command(channel)
 cli.add_command(event)
 cli.add_command(version_cmd, name="version")

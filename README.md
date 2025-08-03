@@ -12,12 +12,28 @@ uv sync
 
 ## Basic commands
 
-- `restream.io login` - perform OAuth2 login flow (opens browser, listens locally).  
-- `restream.io profile` - show user profile.  
-- `restream.io channel list` - list channels.  
-- `restream.io channel get <id>` - fetch specific channel.  
-- `restream.io event list` - list events.  
-- `restream.io version` - show dynamic version derived from git tags.
+### Public endpoints (no authentication required)
+- `restream.io platforms` - list available streaming platforms
+- `restream.io servers` - list available streaming servers
+
+### Authentication
+- `restream.io login` - perform OAuth2 login flow (opens browser, listens locally)
+
+### User profile
+- `restream.io profile` - show user profile
+
+### Channel management
+- `restream.io channel list` - list channels
+- `restream.io channel get <id>` - fetch specific channel
+- `restream.io channel set <id>` - update channel settings
+- `restream.io channel meta get` - get channel metadata
+- `restream.io channel meta set` - update channel metadata
+
+### Event management
+- `restream.io event list` - list events
+
+### Utility
+- `restream.io version` - show dynamic version derived from git tags
 
 ## Configuration
 

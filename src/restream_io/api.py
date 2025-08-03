@@ -9,11 +9,15 @@ from .config import get_client_id, get_client_secret, load_tokens, save_tokens
 from .errors import APIError, AuthenticationError
 from .schemas import (
     Channel,
+    ChannelMeta,
     ChannelSummary,
     EventDestination,
     EventsHistoryResponse,
     EventsPagination,
+    Platform,
+    PlatformImage,
     Profile,
+    Server,
     StreamEvent,
 )
 
@@ -177,6 +181,10 @@ class RestreamClient:
                     url=url,
                 )
 
+            # Handle empty responses (like 204 No Content)
+            if response.status_code == 204 or not response.content:
+                return {}
+
             return response.json()
 
         except requests.RequestException as e:
@@ -308,3 +316,83 @@ class RestreamClient:
         all_events = history_response.items + in_progress + upcoming
 
         return all_events
+
+    def get_platforms(self) -> List[Platform]:
+        """Get all available streaming platforms.
+
+        This is a public endpoint that does not require authentication.
+
+        Returns:
+            List of Platform objects
+        """
+        # Use direct requests call for public endpoint (no Authorization header)
+        response = requests.get(f"{self.base_url}/platform/all", timeout=10)
+        if not response.ok:
+            raise APIError(f"Failed to fetch platforms: {response.status_code} {response.text}")
+        data = response.json()
+
+        # Convert nested image objects
+        platforms = []
+        for item in data:
+            # Convert image and altImage to PlatformImage objects
+            image = PlatformImage(**item["image"])
+            alt_image = PlatformImage(**item["altImage"])
+            platform_data = {**item, "image": image, "altImage": alt_image}
+            platforms.append(Platform(**platform_data))
+
+        return platforms
+
+    def get_servers(self) -> List[Server]:
+        """Get all available ingest servers.
+
+        This is a public endpoint that does not require authentication.
+
+        Returns:
+            List of Server objects
+        """
+        # Use direct requests call for public endpoint (no Authorization header)
+        response = requests.get(f"{self.base_url}/server/all", timeout=10)
+        if not response.ok:
+            raise APIError(f"Failed to fetch servers: {response.status_code} {response.text}")
+        data = response.json()
+        return [Server(**item) for item in data]
+
+    def get_channel_meta(self, channel_id: str) -> ChannelMeta:
+        """Get channel metadata for a specific channel.
+
+        Args:
+            channel_id: The channel ID to retrieve metadata for
+
+        Returns:
+            ChannelMeta object with channel metadata
+        """
+        data = self._make_request("GET", f"/user/channel-meta/{channel_id}")
+        return ChannelMeta(**data)
+
+    def update_channel(self, channel_id: str, active: bool) -> None:
+        """Update channel active status.
+
+        Args:
+            channel_id: The channel ID to update
+            active: Whether the channel should be active
+        """
+        payload = {"active": active}
+        # PATCH returns empty body, just check for no errors
+        self._make_request("PATCH", f"/user/channel/{channel_id}", json=payload)
+
+    def update_channel_meta(
+        self, channel_id: str, title: str, description: Optional[str] = None
+    ) -> None:
+        """Update channel metadata.
+
+        Args:
+            channel_id: The channel ID to update
+            title: The channel title
+            description: Optional channel description
+        """
+        payload = {"title": title}
+        if description is not None:
+            payload["description"] = description
+
+        # PATCH returns empty body, just check for no errors
+        self._make_request("PATCH", f"/user/channel-meta/{channel_id}", json=payload)
