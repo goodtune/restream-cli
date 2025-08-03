@@ -1,13 +1,15 @@
 """Tests for WebSocket monitoring functionality."""
 
-import asyncio
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from restream_io.schemas import ChatEvent, StreamingEvent
-from restream_io.websocket import ChatMonitorClient, StreamingMonitorClient, WebSocketClient
+from restream_io.websocket import (
+    ChatMonitorClient,
+    StreamingMonitorClient,
+    WebSocketClient,
+)
 
 
 class TestWebSocketClient:
@@ -30,15 +32,17 @@ class TestWebSocketClient:
     @pytest.mark.asyncio
     async def test_connect_success(self):
         """Test successful WebSocket connection."""
-        with patch("restream_io.websocket.get_access_token", return_value="test_token"), \
-             patch("websockets.connect", new_callable=AsyncMock) as mock_connect:
-            
+        with (
+            patch("restream_io.websocket.get_access_token", return_value="test_token"),
+            patch("websockets.connect", new_callable=AsyncMock) as mock_connect,
+        ):
+
             mock_websocket = AsyncMock()
             mock_connect.return_value = mock_websocket
-            
+
             client = WebSocketClient("wss://example.com/ws")
             await client.connect()
-            
+
             assert client.websocket == mock_websocket
             mock_connect.assert_called_once_with(
                 "wss://example.com/ws",
@@ -52,7 +56,7 @@ class TestWebSocketClient:
         """Test WebSocket connection with no access token."""
         with patch("restream_io.websocket.get_access_token", return_value=None):
             client = WebSocketClient("wss://example.com/ws")
-            
+
             with pytest.raises(Exception):  # AuthenticationError
                 await client.connect()
 
@@ -60,12 +64,12 @@ class TestWebSocketClient:
     async def test_disconnect(self):
         """Test WebSocket disconnection."""
         mock_websocket = AsyncMock()
-        
+
         client = WebSocketClient("wss://example.com/ws")
         client.websocket = mock_websocket
-        
+
         await client.disconnect()
-        
+
         mock_websocket.close.assert_called_once()
         assert client.websocket is None
 
@@ -73,10 +77,10 @@ class TestWebSocketClient:
     async def test_duration_timeout(self):
         """Test duration-based timeout."""
         client = WebSocketClient("wss://example.com/ws", duration=1)
-        
+
         # Simulate the timeout
         await client._duration_timeout()
-        
+
         assert not client._running
         assert client._stop_event.is_set()
 
@@ -86,18 +90,18 @@ class TestWebSocketClient:
         mock_websocket = AsyncMock()
         mock_websocket.closed = False
         mock_websocket.__aiter__.return_value = iter(["message1", "message2"])
-        
+
         client = WebSocketClient("wss://example.com/ws")
         client._running = True
         client.websocket = mock_websocket
-        
+
         messages = []
         async for message in client._message_stream():
             messages.append(message)
             if len(messages) >= 2:
                 client._running = False
                 break
-        
+
         assert messages == ["message1", "message2"]
 
     @pytest.mark.asyncio
@@ -107,26 +111,28 @@ class TestWebSocketClient:
             '{"type": "test", "data": "value1"}',
             '{"type": "test", "data": "value2"}',
         ]
-        
+
         handled_messages = []
-        
+
         def message_handler(data):
             handled_messages.append(data)
             if len(handled_messages) >= 2:
                 # Stop after 2 messages
                 client._running = False
-        
-        with patch("restream_io.websocket.get_access_token", return_value="test_token"), \
-             patch("websockets.connect", new_callable=AsyncMock) as mock_connect:
-            
+
+        with (
+            patch("restream_io.websocket.get_access_token", return_value="test_token"),
+            patch("websockets.connect", new_callable=AsyncMock) as mock_connect,
+        ):
+
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_websocket.__aiter__.return_value = iter(mock_messages)
             mock_connect.return_value = mock_websocket
-            
+
             client = WebSocketClient("wss://example.com/ws")
             await client.listen(message_handler)
-            
+
             assert len(handled_messages) == 2
             assert handled_messages[0] == {"type": "test", "data": "value1"}
             assert handled_messages[1] == {"type": "test", "data": "value2"}
@@ -138,24 +144,26 @@ class TestWebSocketClient:
             "invalid json",
             '{"type": "test", "data": "valid"}',
         ]
-        
+
         handled_messages = []
-        
+
         def message_handler(data):
             handled_messages.append(data)
             client._running = False  # Stop after first valid message
-        
-        with patch("restream_io.websocket.get_access_token", return_value="test_token"), \
-             patch("websockets.connect", new_callable=AsyncMock) as mock_connect:
-            
+
+        with (
+            patch("restream_io.websocket.get_access_token", return_value="test_token"),
+            patch("websockets.connect", new_callable=AsyncMock) as mock_connect,
+        ):
+
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
             mock_websocket.__aiter__.return_value = iter(mock_messages)
             mock_connect.return_value = mock_websocket
-            
+
             client = WebSocketClient("wss://example.com/ws")
             await client.listen(message_handler)
-            
+
             # Only the valid JSON message should be handled
             assert len(handled_messages) == 1
             assert handled_messages[0] == {"type": "test", "data": "valid"}
@@ -204,9 +212,9 @@ class TestStreamingEvent:
             "channel_id": "123",
             "platform": "youtube",
         }
-        
+
         event = StreamingEvent.from_websocket_message(data)
-        
+
         assert event.event_type == "stream_started"
         assert event.timestamp == "2023-01-01T12:00:00Z"
         assert event.channel_id == "123"
@@ -226,9 +234,9 @@ class TestStreamingEvent:
                 "encoding_time": 10.5,
             },
         }
-        
+
         event = StreamingEvent.from_websocket_message(data)
-        
+
         assert event.event_type == "metrics_update"
         assert event.metrics is not None
         assert event.metrics.bitrate == 5000
@@ -246,10 +254,10 @@ class TestStreamingEvent:
             "platform": "youtube",
             "status": "live",
         }
-        
+
         event = StreamingEvent.from_websocket_message(data)
         str_repr = str(event)
-        
+
         assert "[2023-01-01T12:00:00Z] STREAM_STARTED" in str_repr
         assert "Channel: 123" in str_repr
         assert "Platform: youtube" in str_repr
@@ -267,9 +275,9 @@ class TestChatEvent:
             "channel_id": "123",
             "platform": "twitch",
         }
-        
+
         event = ChatEvent.from_websocket_message(data)
-        
+
         assert event.event_type == "message"
         assert event.timestamp == "2023-01-01T12:00:00Z"
         assert event.channel_id == "123"
@@ -297,16 +305,16 @@ class TestChatEvent:
                 "mentions": [],
             },
         }
-        
+
         event = ChatEvent.from_websocket_message(data)
-        
+
         assert event.user is not None
         assert event.user.id == "user123"
         assert event.user.username == "testuser"
         assert event.user.display_name == "Test User"
         assert event.user.is_subscriber is True
         assert event.user.badges == ["subscriber"]
-        
+
         assert event.message is not None
         assert event.message.text == "Hello, world!"
 
@@ -317,9 +325,9 @@ class TestChatEvent:
             "timestamp": "2023-01-01T12:00:00Z",
             "message": "Simple message",
         }
-        
+
         event = ChatEvent.from_websocket_message(data)
-        
+
         assert event.message is not None
         assert event.message.text == "Simple message"
 
@@ -331,10 +339,10 @@ class TestChatEvent:
             "user": {"username": "testuser"},
             "message": {"text": "Hello!"},
         }
-        
+
         event = ChatEvent.from_websocket_message(data)
         str_repr = str(event)
-        
+
         assert "[2023-01-01T12:00:00Z] testuser: Hello!" in str_repr
 
     def test_str_representation_join(self):
@@ -344,8 +352,8 @@ class TestChatEvent:
             "timestamp": "2023-01-01T12:00:00Z",
             "user": {"username": "newuser"},
         }
-        
+
         event = ChatEvent.from_websocket_message(data)
         str_repr = str(event)
-        
+
         assert "[2023-01-01T12:00:00Z] JOIN: newuser joined" in str_repr

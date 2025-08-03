@@ -8,7 +8,7 @@ import attrs
 @attrs.define
 class ChatUser:
     """Chat user information."""
-    
+
     id: Optional[str] = None
     username: Optional[str] = None
     display_name: Optional[str] = None
@@ -16,7 +16,7 @@ class ChatUser:
     is_moderator: Optional[bool] = None
     is_subscriber: Optional[bool] = None
     badges: Optional[list] = None
-    
+
     def __str__(self) -> str:
         """Human-readable representation."""
         name = self.display_name or self.username or self.id or "Unknown"
@@ -30,11 +30,11 @@ class ChatUser:
 @attrs.define
 class ChatMessage:
     """Chat message content."""
-    
+
     text: Optional[str] = None
     emotes: Optional[list] = None
     mentions: Optional[list] = None
-    
+
     def __str__(self) -> str:
         """Human-readable representation."""
         return self.text or ""
@@ -43,7 +43,7 @@ class ChatMessage:
 @attrs.define
 class ChatEvent:
     """Real-time chat event from WebSocket."""
-    
+
     event_type: str
     timestamp: str
     channel_id: Optional[str] = None
@@ -52,14 +52,14 @@ class ChatEvent:
     platform: Optional[str] = None
     event_id: Optional[str] = None
     raw_data: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_websocket_message(cls, data: Dict[str, Any]) -> "ChatEvent":
         """Create ChatEvent from WebSocket message data.
-        
+
         Args:
             data: Raw message data from WebSocket
-            
+
         Returns:
             ChatEvent instance
         """
@@ -76,7 +76,7 @@ class ChatEvent:
                 is_subscriber=user_data.get("is_subscriber"),
                 badges=user_data.get("badges", []),
             )
-        
+
         # Extract message content if present
         message = None
         if "message" in data:
@@ -89,7 +89,7 @@ class ChatEvent:
                     emotes=message_data.get("emotes", []),
                     mentions=message_data.get("mentions", []),
                 )
-        
+
         return cls(
             event_type=data.get("type", "unknown"),
             timestamp=data.get("timestamp", ""),
@@ -100,12 +100,12 @@ class ChatEvent:
             event_id=data.get("event_id"),
             raw_data=data,
         )
-    
+
     def __str__(self) -> str:
         """Human-readable representation."""
         timestamp_part = f"[{self.timestamp}]"
         event_part = f"{self.event_type.upper()}"
-        
+
         if self.event_type == "message" and self.user and self.message:
             # Format as chat message
             return f"{timestamp_part} {self.user}: {self.message}"
