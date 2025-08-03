@@ -21,6 +21,28 @@ from .schemas import (
 )
 
 
+class RestreamCommand(click.Command):
+    """Custom command class that adds common options and handles API errors."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add --json option to all commands
+        self.params.append(
+            click.Option(["--json"], is_flag=True, help="Output results in JSON format")
+        )
+
+    def invoke(self, ctx):
+        """Override invoke to handle common error patterns."""
+        try:
+            return super().invoke(ctx)
+        except APIError as e:
+            _handle_api_error(e)
+        except AuthenticationError as e:
+            click.echo(f"Authentication error: {e}", err=True)
+            click.echo("Please run 'restream.io login' first.", err=True)
+            sys.exit(1)
+
+
 def _attrs_to_dict(obj):
     """Convert attrs objects to dict for JSON serialization."""
     if attrs.has(obj):
@@ -81,16 +103,10 @@ def _handle_api_error(e: APIError):
     sys.exit(1)
 
 
-@click.pass_context
-def _output_result(ctx, data):
+def _output_result(data, json_output: bool):
     """Output result in the appropriate format."""
     # Convert attrs objects to dict for JSON serialization
     serializable_data = _attrs_to_dict(data)
-
-    # Check if --json flag was passed at the root level
-    json_output = (
-        ctx.find_root().obj.get("json", False) if ctx.find_root().obj else False
-    )
 
     if json_output:
         click.echo(json.dumps(serializable_data, indent=2, default=str))
@@ -133,173 +149,134 @@ def login(port):
         sys.exit(1)
 
 
-@click.command()
-@click.pass_context
-def profile(ctx):
+@click.command(cls=RestreamCommand)
+def profile(json):
     """Fetch user profile from Restream API."""
-    try:
-        client = _get_client()
-        profile_data = client.get_profile()
-        _output_result(ctx, profile_data)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    profile_data = client.get_profile()
+    _output_result(profile_data, json)
 
 
-@click.command("list")
-@click.pass_context
-def channel_list(ctx):
+@click.command("list", cls=RestreamCommand)
+def channel_list(json):
     """List channels."""
-    try:
-        client = _get_client()
-        channels = client.list_channels()
-        _output_result(ctx, channels)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    channels = client.list_channels()
+    _output_result(channels, json)
 
 
-@click.command("get")
+@click.command("get", cls=RestreamCommand)
 @click.argument("channel_id", required=True)
-@click.pass_context
-def channel_get(ctx, channel_id):
+def channel_get(channel_id, json):
     """Get details for a specific channel."""
     try:
         client = _get_client()
         channel = client.get_channel(channel_id)
-        _output_result(ctx, channel)
+        _output_result(channel, json)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Channel not found: {channel_id}", err=True)
             sys.exit(1)
         else:
-            _handle_api_error(e)
+            raise
 
 
-@click.command("list")
-@click.pass_context
-def event_list(ctx):
+@click.command("list", cls=RestreamCommand)
+def event_list(json):
     """List events."""
-    try:
-        client = _get_client()
-        events = client.list_events()
-        _output_result(ctx, events)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    events = client.list_events()
+    _output_result(events, json)
 
 
-@click.command("get")
+@click.command("get", cls=RestreamCommand)
 @click.argument("event_id", required=True)
-@click.pass_context
-def event_get(ctx, event_id):
+def event_get(event_id, json):
     """Get details for a specific event."""
     try:
         client = _get_client()
         event = client.get_event(event_id)
-        _output_result(ctx, event)
+        _output_result(event, json)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Event not found: {event_id}", err=True)
             sys.exit(1)
         else:
-            _handle_api_error(e)
+            raise
 
 
-@click.command("in-progress")
-@click.pass_context
-def event_in_progress(ctx):
+@click.command("in-progress", cls=RestreamCommand)
+def event_in_progress(json):
     """List currently in-progress events."""
-    try:
-        client = _get_client()
-        events = client.list_events_in_progress()
-        _output_result(ctx, events)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    events = client.list_events_in_progress()
+    _output_result(events, json)
 
 
-@click.command("upcoming")
+@click.command("upcoming", cls=RestreamCommand)
 @click.option(
     "--source", type=int, help="Filter by source type (1=Studio, 2=Encoder, 3=Video)"
 )
 @click.option("--scheduled", is_flag=True, help="Show only scheduled events")
-@click.pass_context
-def event_upcoming(ctx, source, scheduled):
+def event_upcoming(source, scheduled, json):
     """List upcoming events."""
-    try:
-        client = _get_client()
-        events = client.list_events_upcoming(
-            source=source, scheduled=scheduled if scheduled else None
-        )
-        _output_result(ctx, events)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    events = client.list_events_upcoming(
+        source=source, scheduled=scheduled if scheduled else None
+    )
+    _output_result(events, json)
 
 
-@click.command("history")
+@click.command("history", cls=RestreamCommand)
 @click.option("--page", type=int, default=1, help="Page number (default: 1)")
 @click.option(
     "--limit", type=int, default=10, help="Number of events per page (default: 10)"
 )
-@click.pass_context
-def event_history(ctx, page, limit):
+def event_history(page, limit, json):
     """List historical events."""
-    try:
-        client = _get_client()
-        response = client.list_events_history(page=page, limit=limit)
-        _output_result(ctx, response)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    response = client.list_events_history(page=page, limit=limit)
+    _output_result(response, json)
 
 
-@click.command("get")
-@click.pass_context
-def stream_key_get(ctx):
+@click.command("get", cls=RestreamCommand)
+def stream_key_get(json):
     """Get user's primary stream key."""
-    try:
-        client = _get_client()
-        stream_key = client.get_stream_key()
-        _output_result(ctx, stream_key)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    stream_key = client.get_stream_key()
+    _output_result(stream_key, json)
 
 
-@click.command("stream-key")
+@click.command("stream-key", cls=RestreamCommand)
 @click.argument("event_id", required=True)
-@click.pass_context
-def event_stream_key(ctx, event_id):
+def event_stream_key(event_id, json):
     """Get stream key for a specific event."""
     try:
         client = _get_client()
         stream_key = client.get_event_stream_key(event_id)
-        _output_result(ctx, stream_key)
+        _output_result(stream_key, json)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Event not found: {event_id}", err=True)
             sys.exit(1)
         else:
-            _handle_api_error(e)
+            raise
 
 
-@click.command()
-@click.pass_context
-def platforms(ctx):
+@click.command(cls=RestreamCommand)
+def platforms(json):
     """List all available streaming platforms."""
-    try:
-        client = _get_client()
-        platforms_data = client.get_platforms()
-        _output_result(ctx, platforms_data)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    platforms_data = client.get_platforms()
+    _output_result(platforms_data, json)
 
 
-@click.command()
-@click.pass_context
-def servers(ctx):
+@click.command(cls=RestreamCommand)
+def servers(json):
     """List all available ingest servers."""
-    try:
-        client = _get_client()
-        servers_data = client.get_servers()
-        _output_result(ctx, servers_data)
-    except APIError as e:
-        _handle_api_error(e)
+    client = _get_client()
+    servers_data = client.get_servers()
+    _output_result(servers_data, json)
 
 
 @click.command("set")
@@ -325,21 +302,20 @@ def channel_set(ctx, channel_id, active):
             _handle_api_error(e)
 
 
-@click.command("get")
+@click.command("get", cls=RestreamCommand)
 @click.argument("channel_id", required=True)
-@click.pass_context
-def channel_meta_get(ctx, channel_id):
+def channel_meta_get(channel_id, json):
     """Get channel metadata."""
     try:
         client = _get_client()
         meta = client.get_channel_meta(channel_id)
-        _output_result(ctx, meta)
+        _output_result(meta, json)
     except APIError as e:
         if e.status_code == 404:
             click.echo(f"Channel not found: {channel_id}", err=True)
             sys.exit(1)
         else:
-            _handle_api_error(e)
+            raise
 
 
 @click.command("set")
@@ -368,12 +344,9 @@ def channel_meta():
 
 
 @click.group()
-@click.option("--json", is_flag=True, help="Output results in JSON format")
-@click.pass_context
-def cli(ctx, json):
+def cli():
     """CLI for Restream.io API"""
-    ctx.ensure_object(dict)
-    ctx.obj["json"] = json
+    pass
 
 
 @click.group()

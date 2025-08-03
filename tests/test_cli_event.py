@@ -300,7 +300,7 @@ def test_event_list_command_json_output():
         tokens_file.write_text('{"access_token": "fake-token"}')
 
         with patch.object(config, "CONFIG_PATH", config_path):
-            result = runner.invoke(cli, ["--json", "event", "list"])
+            result = runner.invoke(cli, ["event", "list", "--json"])
 
     assert result.exit_code == 0
     # Should be valid JSON (empty list in this case)

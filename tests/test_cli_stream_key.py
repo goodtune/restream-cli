@@ -63,7 +63,7 @@ def test_stream_key_get_command_json_output():
         tokens_file.write_text('{"access_token": "fake-token"}')
 
         with patch.object(config, "CONFIG_PATH", config_path):
-            result = runner.invoke(cli, ["--json", "stream-key", "get"])
+            result = runner.invoke(cli, ["stream-key", "get", "--json"])
 
         assert result.exit_code == 0
 

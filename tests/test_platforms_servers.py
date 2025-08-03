@@ -191,7 +191,7 @@ class TestPlatformsCLI:
             tokens_file.write_text('{"access_token": "fake-token"}')
 
             with patch.object(config, "CONFIG_PATH", config_path):
-                result = runner.invoke(cli, ["--json", "platforms"])
+                result = runner.invoke(cli, ["platforms", "--json"])
 
         assert result.exit_code == 0
         output_data = json.loads(result.output.strip())
@@ -270,7 +270,7 @@ class TestServersCLI:
             tokens_file.write_text('{"access_token": "fake-token"}')
 
             with patch.object(config, "CONFIG_PATH", config_path):
-                result = runner.invoke(cli, ["--json", "servers"])
+                result = runner.invoke(cli, ["servers", "--json"])
 
         assert result.exit_code == 0
         output_data = json.loads(result.output.strip())

@@ -141,7 +141,7 @@ def test_channel_get_command_json_output():
         tokens_file.write_text('{"access_token": "fake-token"}')
 
         with patch.object(config, "CONFIG_PATH", config_path):
-            result = runner.invoke(cli, ["--json", "channel", "get", "123456"])
+            result = runner.invoke(cli, ["channel", "get", "123456", "--json"])
 
     assert result.exit_code == 0
     # Should be valid JSON

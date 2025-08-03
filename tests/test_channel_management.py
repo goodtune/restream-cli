@@ -238,7 +238,7 @@ class TestChannelMetaCLI:
 
             with patch.object(config, "CONFIG_PATH", config_path):
                 result = runner.invoke(
-                    cli, ["--json", "channel", "meta", "get", "123456"]
+                    cli, ["channel", "meta", "get", "123456", "--json"]
                 )
 
         assert result.exit_code == 0

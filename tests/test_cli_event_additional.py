@@ -212,7 +212,7 @@ def test_event_in_progress_command_json_output():
         tokens_file.write_text('{"access_token": "fake-token"}')
 
         with patch.object(config, "CONFIG_PATH", config_path):
-            result = runner.invoke(cli, ["--json", "event", "in-progress"])
+            result = runner.invoke(cli, ["event", "in-progress", "--json"])
 
         assert result.exit_code == 0
 

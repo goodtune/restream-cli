@@ -64,7 +64,7 @@ def test_profile_command_json_output():
             # Use the main CLI with --json flag
             from restream_io.cli import cli
 
-            result = runner.invoke(cli, ["--json", "profile"])
+            result = runner.invoke(cli, ["profile", "--json"])
 
     assert result.exit_code == 0
     # Should be valid JSON
