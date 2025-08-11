@@ -16,6 +16,7 @@ dependencies = [
   "attrs>=25.3.0",
   "click>=8.2.1",
   "requests>=2.32.4",
+  "websockets>=14.1",
 ]
 scripts = { "restream.io" = "restream_io.cli:main" }
 
@@ -28,6 +29,8 @@ local_scheme = "dirty-tag"
 
 [dependency-groups]
 dev = [
+    "pymarkdownlnt>=0.9.31",
     "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
     "responses>=0.25.7",
 ]
