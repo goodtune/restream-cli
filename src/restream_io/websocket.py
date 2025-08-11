@@ -116,12 +116,29 @@ class WebSocketClient:
                     await self.connect()
                     retry_count = 0  # Reset retry count on successful connection
 
-                async for message in self.websocket:
-                    if not self._running:
-                        break
-                    yield message
+                # Use asyncio.wait_for with timeout to periodically check _running
+                while self._running:
+                    try:
+                        # Wait for message with 1 second timeout to check _running flag
+                        message = await asyncio.wait_for(
+                            self.websocket.recv(), timeout=1.0
+                        )
+                        if not self._running:
+                            break
+                        yield message
+                    except asyncio.TimeoutError:
+                        # Timeout is expected, just continue to check _running
+                        continue
+                    except ConnectionClosed:
+                        # Connection closed, will be handled by outer exception handler
+                        raise
 
             except ConnectionClosed:
+                if not self._running:
+                    # Don't attempt reconnection if we're shutting down
+                    logger.info("WebSocket connection closed during shutdown")
+                    break
+
                 logger.warning(
                     "WebSocket connection closed, attempting to reconnect..."
                 )
@@ -153,6 +170,14 @@ class WebSocketClient:
         logger.info("Received shutdown signal")
         self._running = False
         self._stop_event.set()
+
+        # Force close the WebSocket connection to break out of blocking reads
+        if self.websocket:
+            try:
+                asyncio.create_task(self.websocket.close())
+            except Exception:
+                # Ignore errors during forced close
+                pass
 
 
 class StreamingMonitorClient(WebSocketClient):

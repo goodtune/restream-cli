@@ -13,16 +13,20 @@ uv sync
 ## Basic commands
 
 ### Public endpoints (no authentication required)
+
 - `restream.io platforms` - list available streaming platforms
 - `restream.io servers` - list available streaming servers
 
 ### Authentication
+
 - `restream.io login` - perform OAuth2 login flow (opens browser, listens locally)
 
 ### User profile
+
 - `restream.io profile` - show user profile
 
 ### Channel management
+
 - `restream.io channel list` - list channels
 - `restream.io channel get <id>` - fetch specific channel
 - `restream.io channel set <id>` - update channel settings
@@ -30,20 +34,24 @@ uv sync
 - `restream.io channel meta set` - update channel metadata
 
 ### Event management
+
 - `restream.io event list` - list events
 
 ### Utility
+
 - `restream.io version` - show dynamic version derived from git tags
 
 ## Configuration
 
 ### Storage Location
 
-Tokens and configuration are stored securely in the user's platform-appropriate config directory:
+Tokens and configuration are stored securely in the user's platform-appropriate
+config directory:
 - **Linux/macOS**: `~/.config/restream.io/`
 - **Windows**: `%APPDATA%\restream.io\`
 
-The configuration directory location can be overridden using the `RESTREAM_CONFIG_PATH` environment variable.
+The configuration directory location can be overridden using the
+`RESTREAM_CONFIG_PATH` environment variable.
 
 ### Environment Variables
 
@@ -54,7 +62,8 @@ The following environment variables are required for OAuth2 authentication:
 
 Additional optional configuration:
 
-- `RESTREAM_CONFIG_PATH`: Override the default configuration directory path
+- `RESTREAM_CONFIG_PATH`: Override the default configuration directory
+  path
 
 Before using the login command, ensure both authentication variables are set:
 
@@ -66,9 +75,11 @@ restream.io login
 
 ### Security
 
-- Configuration directory is created with `0o700` permissions (owner read/write/execute only)
+- Configuration directory is created with `0o700` permissions (owner
+  read/write/execute only)
 - Token files are created with `0o600` permissions (owner read/write only)
-- Tokens are stored in JSON format in `tokens.json` within the config directory
+- Tokens are stored in JSON format in `tokens.json` within the config
+  directory
 
 ## Development
 

@@ -1,5 +1,6 @@
 """Tests for WebSocket monitoring functionality."""
 
+import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -88,7 +89,23 @@ class TestWebSocketClient:
         """Test message streaming with successful messages."""
         mock_websocket = AsyncMock()
         mock_websocket.closed = False
-        mock_websocket.__aiter__.return_value = iter(["message1", "message2"])
+
+        # Mock recv() method to return messages in sequence
+        messages_to_send = ["message1", "message2"]
+        call_count = 0
+
+        async def mock_recv():
+            nonlocal call_count
+            if call_count < len(messages_to_send):
+                msg = messages_to_send[call_count]
+                call_count += 1
+                return msg
+            else:
+                # After sending all messages, keep the connection alive
+                await asyncio.sleep(2)  # Longer than the 1s timeout
+                raise asyncio.TimeoutError()
+
+        mock_websocket.recv = mock_recv
 
         client = WebSocketClient("wss://example.com/ws")
         client._running = True
@@ -126,7 +143,21 @@ class TestWebSocketClient:
 
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
-            mock_websocket.__aiter__.return_value = iter(mock_messages)
+
+            # Mock recv() method to return messages in sequence
+            call_count = 0
+
+            async def mock_recv():
+                nonlocal call_count
+                if call_count < len(mock_messages):
+                    msg = mock_messages[call_count]
+                    call_count += 1
+                    return msg
+                else:
+                    await asyncio.sleep(2)  # Longer than timeout
+                    raise asyncio.TimeoutError()
+
+            mock_websocket.recv = mock_recv
             mock_connect.return_value = mock_websocket
 
             client = WebSocketClient("wss://example.com/ws")
@@ -157,7 +188,21 @@ class TestWebSocketClient:
 
             mock_websocket = AsyncMock()
             mock_websocket.closed = False
-            mock_websocket.__aiter__.return_value = iter(mock_messages)
+
+            # Mock recv() method to return messages in sequence
+            call_count = 0
+
+            async def mock_recv():
+                nonlocal call_count
+                if call_count < len(mock_messages):
+                    msg = mock_messages[call_count]
+                    call_count += 1
+                    return msg
+                else:
+                    await asyncio.sleep(2)  # Longer than timeout
+                    raise asyncio.TimeoutError()
+
+            mock_websocket.recv = mock_recv
             mock_connect.return_value = mock_websocket
 
             client = WebSocketClient("wss://example.com/ws")

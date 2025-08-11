@@ -29,6 +29,7 @@ local_scheme = "dirty-tag"
 
 [dependency-groups]
 dev = [
+    "pymarkdownlnt>=0.9.31",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
     "responses>=0.25.7",
